@@ -47,7 +47,7 @@ export default function DashboardPage() {
   const statCards = [
     { label: 'Resumes Created',  value: stats?.totalResumes ?? 0,   sub: '+3 this week',      icon: '📄', color: 'text-cyan' },
     { label: 'Avg ATS Score',    value: stats?.avgScore ?? 0,        sub: '↑ 12 pts improved', icon: '◎',  color: 'text-lime' },
-    { label: 'Jobs Applied',     value: stats?.jobsApplied ?? 0,     sub: '2 interviews!',     icon: '🎯', color: 'text-violet' },
+    // { label: 'Jobs Applied',     value: stats?.jobsApplied ?? 0,     sub: '2 interviews!',     icon: '🎯', color: 'text-violet' },
     { label: 'Optimized Today',  value: stats?.optimizedToday ?? 0,  sub: 'Last: 12 min ago',  icon: '✦',  color: 'text-[#FF8C42]' },
   ]
 
@@ -66,20 +66,20 @@ export default function DashboardPage() {
             <span className="text-gradient-cyan">{firstName} 👋</span>
           </h1>
         </div>
-        <button onClick={() => navigate('/builder')} className="btn-primary whitespace-nowrap">
+        <button onClick={() => navigate('/resume-builder')} className="btn-primary whitespace-nowrap">
           ✦ New Resume
         </button>
       </div>
 
       {/* ── Stat Cards ── */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {statCards.map((s, i) => (
-          <div key={i} className="glass-card p-6" style={{ animationDelay: `${i * 0.07}s` }}>
-            <div className="text-2xl mb-3">{s.icon}</div>
+          <div key={i} className="glass-card p-4" style={{ animationDelay: `${i * 0.07}s` }}>
+            <div className="text-2xl">{s.icon}</div>
             <div className={`text-[32px] font-bold font-mono tracking-[-1px] ${s.color}`}>
               {s.value}
             </div>
-            <p className="text-xs text-ink-muted mt-1 mb-2">{s.label}</p>
+            <p className="text-xs text-ink-muted mb-2">{s.label}</p>
             <p className="text-[11px] text-[#FF8C42] font-mono">{s.sub}</p>
           </div>
         ))}
@@ -98,7 +98,7 @@ export default function DashboardPage() {
             </h3>
             <p className="text-sm text-ink-muted">Tailored resume + ATS score in under 30 seconds</p>
           </div>
-          <button onClick={() => navigate('/builder')} className="btn-primary whitespace-nowrap">
+          <button onClick={() => navigate('/resume-builder')} className="btn-primary whitespace-nowrap">
             Optimize Resume →
           </button>
         </div>
@@ -115,7 +115,7 @@ export default function DashboardPage() {
           {resumes.map((r) => (
             <button
               key={r.id}
-              onClick={() => navigate(`/ats/${r.id}`)}
+              onClick={() => navigate(`/ats-analyzer/${r.id}`)}
               className="glass-card w-full p-5 flex items-center gap-5 text-left
                          hover:border-cyan/25 hover:bg-cyan/[0.03] transition-all duration-200
                          hover:-translate-y-0.5"
