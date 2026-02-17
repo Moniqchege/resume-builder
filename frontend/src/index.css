@@ -1,0 +1,105 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply box-border;
+  }
+
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply bg-space-bg text-ink-primary font-sans antialiased;
+    background-image: theme('backgroundImage.grid-dark');
+    background-size: theme('backgroundSize.grid');
+  }
+
+  ::-webkit-scrollbar {
+    width: 5px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-space-bg;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-space-border rounded-full;
+  }
+}
+
+@layer components {
+  /* ── Glass Card ── */
+  .glass-card {
+    @apply bg-space-card border border-space-border rounded-card
+           backdrop-blur-md shadow-card;
+  }
+
+  /* ── Gradient Buttons ── */
+  .btn-primary {
+    @apply bg-grad-cyan text-space-bg font-bold rounded-xl px-6 py-3
+           shadow-cyan transition-all duration-200
+           hover:-translate-y-0.5 hover:shadow-lg
+           active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+
+  .btn-ghost {
+    @apply border border-space-border text-ink-muted font-semibold rounded-xl px-5 py-3
+           bg-transparent hover:border-cyan/40 hover:text-ink-primary
+           transition-all duration-200 active:scale-95;
+  }
+
+  .btn-lime {
+    @apply bg-grad-lime text-space-bg font-bold rounded-xl px-6 py-3
+           shadow-lime transition-all duration-200
+           hover:-translate-y-0.5 active:scale-95;
+  }
+
+  /* ── Input ── */
+  .input-dark {
+    @apply w-full bg-space-surface border border-space-border rounded-xl
+           px-4 py-3 text-ink-primary placeholder-ink-dim font-mono text-sm
+           focus:outline-none focus:border-cyan/50 focus:ring-1 focus:ring-cyan/20
+           transition-colors duration-200;
+  }
+
+  /* ── Score Ring wrapper ── */
+  .score-high   { @apply text-lime;   }
+  .score-mid    { @apply text-cyan;   }
+  .score-low    { @apply text-status-danger; }
+
+  /* ── Pill Tag ── */
+  .pill-success { @apply bg-lime/10  text-lime   border border-lime/20  text-xs font-bold font-mono px-3 py-1 rounded-full; }
+  .pill-warning { @apply bg-orange-400/10 text-orange-400 border border-orange-400/20 text-xs font-bold font-mono px-3 py-1 rounded-full; }
+  .pill-danger  { @apply bg-status-danger/10 text-status-danger border border-status-danger/20 text-xs font-bold font-mono px-3 py-1 rounded-full; }
+
+  /* ── Sidebar Nav Item ── */
+  .nav-item {
+    @apply flex items-center gap-3 px-3.5 py-3 rounded-xl w-full text-left
+           text-sm font-medium text-ink-muted border border-transparent
+           transition-all duration-150 cursor-pointer
+           hover:text-ink-primary;
+  }
+  .nav-item.active {
+    @apply bg-cyan/10 border-cyan/20 text-cyan font-bold;
+  }
+
+  /* ── Keyword Chip ── */
+  .kw-found   { @apply bg-lime/10  text-lime   border border-lime/20  text-xs font-mono font-semibold px-2.5 py-1 rounded-full; }
+  .kw-missing { @apply bg-status-danger/10 text-status-danger border border-status-danger/20 text-xs font-mono font-semibold px-2.5 py-1 rounded-full; }
+}
+
+@layer utilities {
+  .text-gradient-cyan {
+    @apply bg-grad-cyan bg-clip-text text-transparent;
+  }
+  .text-gradient-rainbow {
+    background: theme('backgroundImage.grad-rainbow');
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .glow-cyan   { box-shadow: 0 0 20px rgba(0, 212, 255, 0.35); }
+  .glow-lime   { box-shadow: 0 0 20px rgba(184, 255, 0, 0.35); }
+  .glow-violet { box-shadow: 0 0 20px rgba(123, 47, 255, 0.35); }
+}
