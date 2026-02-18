@@ -33,32 +33,4 @@ export const setupOAuth = () => {
       }
     )
   );
-
-//   passport.use(
-//     new LinkedInStrategy(
-//       {
-//         clientID: process.env.LINKEDIN_CLIENT_ID!,
-//         clientSecret: process.env.LINKEDIN_CLIENT_SECRET!,
-//         callbackURL: process.env.LINKEDIN_CALLBACK_URL!,
-//         scope: ["r_emailaddress", "r_liteprofile"],
-//       },
-//       (accessToken, refreshToken, profile, done) => {
-//         done(null, profile);
-//       }
-//     )
-//   );
-
-//   passport.use(
-//     new MicrosoftStrategy(
-//       {
-//         clientID: process.env.MICROSOFT_CLIENT_ID!,
-//         clientSecret: process.env.MICROSOFT_CLIENT_SECRET!,
-//         callbackURL: process.env.MICROSOFT_CALLBACK_URL!,
-//         scope: ["user.read"],
-//       },
-//       (accessToken, refreshToken, profile, done) => {
-//         done(null, profile);
-//       }
-//     )
-//   );
 };

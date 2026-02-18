@@ -24,7 +24,7 @@ export default function Sidebar() {
     <>
       {/* Hamburger Menu (visible only on small screens) */}
       <button
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-space-bg/90 rounded-md shadow-md"
+        className="lg:hidden fixed top-6 left-6 z-50 p-2 btn-primary whitespace-nowrap rounded-md shadow-md"
         onClick={() => setIsOpen(prev => !prev)}
       >
         <Menu size={24} />
@@ -67,7 +67,7 @@ export default function Sidebar() {
         </nav>
 
         {/* User */}
-        <div className="px-1 py-4 border-t border-space-border mt-auto">
+        <div className="px-1 py-4 border-t border-space-border mt-auto" onClick={() => logout()}>
           <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-space-surface/50 border border-space-border">
             <div className="w-8 h-8 rounded-full bg-grad-cyan flex items-center justify-center text-xs font-bold text-space-bg shrink-0">
               {user?.name?.slice(0, 2).toUpperCase() ?? 'MS'}

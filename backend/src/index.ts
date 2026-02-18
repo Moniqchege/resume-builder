@@ -1,5 +1,6 @@
 import dotenv from "dotenv";
 dotenv.config();
+import cors from "cors";
 
 import express from "express";
 import session from "express-session";
@@ -16,6 +17,11 @@ app.use(
     saveUninitialized: true,
   })
 );
+
+app.use(cors({
+  origin: "http://localhost:5173", 
+  credentials: true,               
+}));
 
 app.use(passport.initialize());
 app.use(passport.session());

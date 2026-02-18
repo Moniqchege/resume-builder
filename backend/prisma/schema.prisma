@@ -1,126 +1,42 @@
-// prisma/schema.prisma
-// Run: npx prisma db push  (dev)
-//      npx prisma migrate dev --name init  (production migrations)
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
-// ─── Enums ────────────────────────────────────────────────
+model User {
+  id            Int        @id @default(autoincrement())
+  email         String     @unique(map: "email") @db.VarChar(255)
+  password_hash String     @db.VarChar(255)
+  username      String     @unique(map: "username") @db.VarChar(255)
+  name          String     @db.VarChar(100)
+  image         String?    @db.VarChar(255)
+  provider      String?    @default("microsoft") @db.VarChar(50)
+  provider_id   String?    @unique(map: "provider_id") @db.VarChar(255)
+  plan          Plan?      @default(FREE)
+  createdAt     DateTime?  @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt     DateTime?  @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+  sessions      sessions[]
+
+  @@map("users")
+}
+
+model sessions {
+  id         Int       @id @default(autoincrement())
+  user_id    Int
+  token      String    @unique(map: "token") @db.VarChar(255)
+  expires_at DateTime  @db.DateTime(0)
+  created_at DateTime? @default(now()) @db.Timestamp(0)
+  users      User      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "sessions_ibfk_1")
+
+  @@index([user_id], map: "user_id")
+}
+
 enum Plan {
   FREE
   PRO
   ENTERPRISE
-}
-
-enum ResumeStatus {
-  DRAFT
-  ANALYZING
-  OPTIMIZED
-  EXPORTED
-}
-
-enum ExportFormat {
-  PDF
-  DOCX
-  TXT
-}
-
-// ─── Models ───────────────────────────────────────────────
-model User {
-  id         String   @id @default(cuid())
-  email      String   @unique
-  name       String
-  image      String?
-  provider   String   @default("microsoft")
-  providerId String?  @unique   // OAuth sub / OID from Microsoft
-  plan       Plan     @default(FREE)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  resumes    Resume[]
-  sessions   Session[]
-
-  @@index([email])
-}
-
-model Session {
-  id        String   @id @default(cuid())
-  userId    String
-  token     String   @unique
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([token])
-}
-
-model Resume {
-  id            String       @id @default(cuid())
-  userId        String
-  title         String
-  company       String?
-  rawText       String       @db.Text   // Plain text of the uploaded resume
-  optimizedText String?      @db.Text   // AI-tailored version
-  status        ResumeStatus @default(DRAFT)
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-
-  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  analyses    ATSAnalysis[]
-  exports     Export[]
-
-  @@index([userId])
-}
-
-model ATSAnalysis {
-  id              String   @id @default(cuid())
-  resumeId        String
-  jobDescription  String   @db.Text
-  jobTitle        String?
-  company         String?
-
-  // Scores (0–100)
-  overallScore    Int
-  keywordScore    Int
-  formatScore     Int
-  experienceScore Int
-  skillsScore     Int
-  actionWordScore Int
-
-  previousScore   Int?              // Score before optimization
-
-  // Keyword arrays
-  keywordsFound   String[]
-  keywordsMissing String[]
-
-  // AI suggestions JSON
-  suggestions     Json
-
-  createdAt DateTime @default(now())
-
-  resume Resume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
-
-  @@index([resumeId])
-}
-
-model Export {
-  id        String       @id @default(cuid())
-  resumeId  String
-  format    ExportFormat
-  s3Key     String?      // Path in S3/R2 bucket
-  localPath String?      // Local path for dev
-  sizeBytes Int?
-  createdAt DateTime     @default(now())
-
-  resume Resume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
-
-  @@index([resumeId])
 }

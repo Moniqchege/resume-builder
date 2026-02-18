@@ -1,5 +1,7 @@
 import OrbBackground from "@/components/OrbBackground";
 import { useState, useEffect, useRef } from "react";
+import { FaUser, FaEye, FaEyeSlash } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 
 // ─── Landing / Auth View ──────────────────────────────────────────────────────
 export default function LandingView({
@@ -13,6 +15,98 @@ export default function LandingView({
     { id: "google", label: "Google", icon: "G", color: "#EA4335" },
     { id: "github", label: "GitHub", icon: "⌥", color: "#E8EDF5" },
   ];
+
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [isRegister, setIsRegister] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const navigate = useNavigate();
+
+  useEffect(() => {
+  setUsername("");
+  setPassword("");
+  setConfirmPassword("");
+}, []);
+
+  // ───── Login Handler ─────
+const handleLocalLogin = async () => {
+  setError(null);
+  if (!username || !password) {
+    setError("Please fill in both fields.");
+    return;
+  }
+
+  setLoading(true);
+  try {
+    const res = await fetch("http://localhost:4000/auth/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ username, password }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      setError(data.message || "Login failed.");
+      setLoading(false);
+      return;
+    }
+    localStorage.setItem("token", data.token);
+    console.log("Logged in successfully!", data);
+    navigate("/dashboard");
+    setLoading(false);
+  } catch (err) {
+    console.error(err);
+    setError("Server error. Try again.");
+    setLoading(false);
+  }
+};
+
+// ───── Register Handler ─────
+const handleRegister = async () => {
+  setError(null);
+  if (!username || !password || !confirmPassword) {
+    setError("Please fill in both fields.");
+    return;
+  }
+
+  if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+  setLoading(true);
+  try {
+    const res = await fetch("http://localhost:4000/auth/register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ username, password, email: username }), // replace email if you want separate field
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      setError(data.message || "Registration failed.");
+      setLoading(false);
+      return;
+    }
+    localStorage.setItem("token", data.token);
+    console.log("Registered successfully!", data);
+    navigate("/dashboard");
+    setLoading(false);
+  } catch (err) {
+    console.error(err);
+    setError("Server error. Try again.");
+    setLoading(false);
+  }
+};
 
 return (
   <>
@@ -36,9 +130,9 @@ return (
           display: "flex", alignItems: "center", justifyContent: "center",
           fontSize: 22, fontWeight: 800, color: "#fff",
           boxShadow: "0 0 30px rgba(0,212,255,0.35)"
-        }}>Jf</div>
+        }}>N</div>
         <div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: "#E8EDF5", letterSpacing: "-0.5px" }}>JobForge</div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: "#E8EDF5", letterSpacing: "-0.5px" }}>NextStep</div>
           <div style={{ fontSize: 11, color: "#00D4FF", fontFamily: "'JetBrains Mono', monospace", letterSpacing: 2 }}>ATS OPTIMIZER</div>
         </div>
       </div>
@@ -120,48 +214,245 @@ return (
       </div>
 
       {/* Right Column */}
-      <div style={{
-        flex: "1 1 300px",  
+<div
+  style={{
+    flex: "1 1 300px",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: 12,
+    width: "100%",
+  }}
+>
+  {/* ───── Local Auth Inputs ───── */}
+  <div style={{ position: "relative", width: "100%", maxWidth: 400 }}>
+  <input
+    placeholder="Username"
+    value={username}
+    onChange={(e) => setUsername(e.target.value)}
+    // autoComplete="off" 
+    style={{
+      width: "100%",
+      maxWidth: 400,
+      padding: "11px 16px",
+      borderRadius: 14,
+      border: "1px solid rgba(255,255,255,0.08)",
+      background: "rgba(15,22,41,0.8)",
+      color: "#E8EDF5",
+      fontSize: 14,
+      fontFamily: "'Syne', sans-serif",
+      outline: "none",
+      transition: "all 0.2s ease",
+    }}
+  />
+    <FaUser
+          style={{
+            position: "absolute",
+            right: 12,
+            top: "50%",
+            transform: "translateY(-50%)",
+            color: "#8A94A6",
+            fontSize: 16,
+          }}
+        />
+  </div>
+  <div style={{ position: "relative", width: "100%", maxWidth: 400 }}>
+  <input
+    type={showPassword ? "text" : "password"}
+    placeholder="Password"
+    value={password}
+    onChange={(e) => setPassword(e.target.value)}
+    autoComplete="new-password"
+    style={{
+      width: "100%",
+      maxWidth: 400,
+      padding: "11px 16px",
+      borderRadius: 14,
+      border: "1px solid rgba(255,255,255,0.08)",
+      background: "rgba(15,22,41,0.8)",
+      color: "#E8EDF5",
+      fontSize: 14,
+      fontFamily: "'Syne', sans-serif",
+      outline: "none",
+      transition: "all 0.2s ease",
+    }}
+  />
+    <div
+          onClick={() => setShowPassword(!showPassword)}
+          style={{
+            position: "absolute",
+            right: 12,
+            top: "50%",
+            transform: "translateY(-50%)",
+            cursor: "pointer",
+            color: "#8A94A6",
+            fontSize: 16,
+          }}
+        >
+          {showPassword ? <FaEyeSlash /> : <FaEye />}
+        </div>
+  </div>
+
+   {isRegister && (
+            <div style={{ position: "relative", width: "100%", maxWidth: 400 }}>
+              <input
+                type={showConfirmPassword ? "text" : "password"}
+                placeholder="Confirm Password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                style={{ width: "100%", padding: "11px 16px", borderRadius: 14, border: "1px solid rgba(255,255,255,0.08)", background: "rgba(15,22,41,0.8)", color: "#E8EDF5", fontSize: 14, fontFamily: "'Syne', sans-serif", outline: "none", transition: "all 0.2s ease" }}
+              />
+              <div onClick={() => setShowConfirmPassword(!showConfirmPassword)} style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", cursor: "pointer", color: "#8A94A6", fontSize: 16 }}>
+                {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+              </div>
+            </div>
+          )}
+
+  {/* ───── Login/Register Button ───── */}
+  <button
+    onClick={isRegister ? handleRegister : handleLocalLogin}
+    onMouseEnter={() => setHoveredProvider(isRegister ? "register" : "login")}
+    onMouseLeave={() => setHoveredProvider(null)}
+    style={{
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 12,
+      padding: "10px 24px",
+      borderRadius: 14,
+      border: "1px solid",
+      borderColor:
+        hoveredProvider === (isRegister ? "register" : "login")
+          ? "rgba(0,212,255,0.5)"
+          : "rgba(255,255,255,0.08)",
+      background:
+        hoveredProvider === (isRegister ? "register" : "login")
+          ? "rgba(0,212,255,0.06)"
+          : "rgba(15,22,41,0.8)",
+      color: "#E8EDF5",
+      fontSize: 15,
+      fontWeight: 600,
+      cursor: "pointer",
+      transition: "all 0.2s ease",
+      fontFamily: "'Syne', sans-serif",
+      transform:
+        hoveredProvider === (isRegister ? "register" : "login")
+          ? "translateY(-1px)"
+          : "none",
+      boxShadow:
+        hoveredProvider === (isRegister ? "register" : "login")
+          ? "0 8px 24px rgba(0,212,255,0.12)"
+          : "none",
+      width: "100%",
+      maxWidth: 400,
+    }}
+  >
+    {isRegister ? "Register" : "Login"}
+  </button>
+
+  {/* ───── Toggle Link ───── */}
+  <div
+  onClick={() => setIsRegister(!isRegister)}
+  style={{
+    fontSize: 12,
+    cursor: "pointer",
+    marginTop: 2,
+    fontFamily: "'JetBrains Mono', monospace",
+    color: "#8A94A6",
+  }}
+>
+  {isRegister ? (
+    <>
+      Already have an account?{" "}
+      <span style={{ color: "#00D4FF", fontWeight: 600 }}>Login</span>
+    </>
+  ) : (
+    <>
+      Don't have an account?{" "}
+      <span style={{ color: "#00D4FF", fontWeight: 600 }}>Register</span>
+    </>
+  )}
+</div>
+
+  {/* ───── Error Message ───── */}
+  {error && (
+    <div style={{ color: "#FF6B6B", fontSize: 12 }}>
+      {error}
+    </div>
+  )}
+
+  {/* ───── Divider ───── */}
+  <div
+    style={{
+      width: 300,
+      textAlign: "center",
+      color: "#4A5568",
+      fontSize: 12,
+      margin: "8px 0",
+    }}
+  >
+    ── or continue with ──
+  </div>
+
+  {/* ───── OAuth Providers ───── */}
+  {providers.map((p) => (
+    <button
+      key={p.id}
+      onMouseEnter={() => setHoveredProvider(p.id)}
+      onMouseLeave={() => setHoveredProvider(null)}
+      onClick={() => onLogin(p.id)}
+      style={{
         display: "flex",
-        flexDirection: "column",
-        alignItems: "center", 
-        gap: 12
-      }}>
-        {providers.map(p => (
-          <button key={p.id}
-            onMouseEnter={() => setHoveredProvider(p.id)}
-            onMouseLeave={() => setHoveredProvider(null)}
-            onClick={() => onLogin(p.id)}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 12,
-              padding: "14px 24px",
-              borderRadius: 14,
-              border: "1px solid",
-              borderColor: hoveredProvider === p.id ? "rgba(0,212,255,0.5)" : "rgba(255,255,255,0.08)",
-              background: hoveredProvider === p.id ? "rgba(0,212,255,0.06)" : "rgba(15,22,41,0.8)",
-              color: "#E8EDF5",
-              fontSize: 15,
-              fontWeight: 600,
-              cursor: "pointer",
-              transition: "all 0.2s ease",
-              fontFamily: "'Syne', sans-serif",
-              transform: hoveredProvider === p.id ? "translateY(-1px)" : "none",
-              boxShadow: hoveredProvider === p.id ? "0 8px 24px rgba(0,212,255,0.12)" : "none",
-              width: "100%",
-              maxWidth: 300
-            }}>
-            <span style={{
-              width: 28, height: 28, borderRadius: 8, background: `${p.color}20`,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 13, fontWeight: 800, color: p.color, border: `1px solid ${p.color}30`
-            }}>{p.icon}</span>
-            Continue with {p.label}
-          </button>
-        ))}
-      </div>
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 12,
+        padding: "10px 24px",
+        borderRadius: 14,
+        border: "1px solid",
+        borderColor:
+          hoveredProvider === p.id
+            ? "rgba(0,212,255,0.5)"
+            : "rgba(255,255,255,0.08)",
+        background:
+          hoveredProvider === p.id
+            ? "rgba(0,212,255,0.06)"
+            : "rgba(15,22,41,0.8)",
+        color: "#E8EDF5",
+        fontSize: 15,
+        fontWeight: 600,
+        cursor: "pointer",
+        transition: "all 0.2s ease",
+        fontFamily: "'Syne', sans-serif",
+        transform: hoveredProvider === p.id ? "translateY(-1px)" : "none",
+        boxShadow:
+          hoveredProvider === p.id
+            ? "0 8px 24px rgba(0,212,255,0.12)"
+            : "none",
+        width: "100%",
+        maxWidth: 300,
+      }}
+    >
+      <span
+        style={{
+          width: 28,
+          height: 28,
+          borderRadius: 8,
+          background: `${p.color}20`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 13,
+          fontWeight: 800,
+          color: p.color,
+          border: `1px solid ${p.color}30`,
+        }}
+      >
+        {p.icon}
+      </span>
+      Continue with {p.label}
+    </button>
+  ))}
+</div>
     </div>
 
     {/* Bottom Paragraph */}
@@ -171,19 +462,4 @@ return (
   </div>
   </>
 );
-
 }
-
-// ─── Main App ─────────────────────────────────────────────────────────────────
-// export default function App() {
-//   const handleOAuthLogin = (provider: string) => {
-//   window.location.href = `http://localhost:4000/auth/${provider}`;
-// };
-
-//   return (
-//     <>
-//       <OrbBackground />
-//       <LandingView onLogin={handleOAuthLogin} />
-//     </>
-//   );
-// }
