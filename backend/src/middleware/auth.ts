@@ -20,6 +20,9 @@ export async function requireAuth(
 
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET!) as JwtPayload & { sub?: string };
+
+    const userId = Number(payload.sub); 
+    if (isNaN(userId)) return res.status(401).json({ error: "Invalid token payload" });
     if (!payload?.sub) return res.status(401).json({ error: "Invalid token payload" });
 
     const session = await db.sessions.findUnique({
@@ -36,7 +39,7 @@ export async function requireAuth(
     if (new Date(session.expires_at) < new Date())
       return res.status(401).json({ error: "Session expired" });
 
-    req.userId = payload.sub; 
+    req.userId = userId; 
     req.user = {
       id: session.users.id,
       email: session.users.email,

@@ -44,6 +44,12 @@ atsRouter.post("/analyze", async (req, res): Promise<void> => {
     company = "Unknown Company",
   } = result.data;
 
+    const resumeIdNum = resumeId ? Number(resumeId) : undefined;
+  if (resumeIdNum && isNaN(resumeIdNum)) {
+    res.status(400).json({ error: "Invalid resumeId" });
+    return;
+  }
+
   let text = resumeText;
   let resume: Resume | null = null;
 
@@ -100,20 +106,22 @@ atsRouter.post("/analyze", async (req, res): Promise<void> => {
       previousScore = lastAnalysis?.previousScore ?? 0;
     }
 
-    const analysis = await db.atsAnalysis.create({
-      data: {
-        resumeId: resume?.id ?? (await createTempResume(userId, text, jobTitle)),
-        jobDescription,
-        jobTitle,
-        companyName: company,      // <-- matches Prisma schema
-        atsScore: breakdown.overallScore,  // <-- matches schema
-        keywordMatchPercentage: breakdown.keywordScore ?? 0,
-        previousScore,
-        missingKeywords: breakdown.keywordsMissing || [],
-        matchedKeywords: breakdown.keywordsFound || [],
-        improvementSuggestions: suggestions.join("\n"),
-      },
-    });
+ const analysis = await db.atsAnalysis.create({
+  data: {
+    resumeId: resume?.id ?? (await createTempResume(authReq.userId!, text)),
+    jobDescription,
+    jobTitle: jobTitle ?? "Unknown Role",
+    companyName: company ?? "Unknown Company",
+    atsScore: breakdown.overallScore,
+    keywordMatchPercentage: breakdown.keywordScore ?? 0,
+    previousScore,
+    matchedKeywords: breakdown.keywordsFound || [],
+    missingKeywords: breakdown.keywordsMissing || [],
+    improvementSuggestions: suggestions.join("\n") || "",
+  },
+});
+
+console.log("Created analysis:", analysis.id);
 
     if (resume) {
       await db.resume.update({
@@ -146,68 +154,54 @@ atsRouter.post("/analyze", async (req, res): Promise<void> => {
 /* ─────────────────────────────────────────────
    GET /api/ats/analyses/:analysisId
 ───────────────────────────────────────────── */
-atsRouter.get("/analyses/:analysisId", async (req, res): Promise<void> => {
+atsRouter.get("/analyses/:id", async (req, res) => {
+  const analysisId = Number(req.params.id);
   const authReq = req as AuthRequest;
-  const analysisId = Number(req.params.analysisId);
+  const userId = Number(authReq.userId);
 
-  if (isNaN(analysisId)) {
-    res.status(400).json({ error: "Invalid analysis id" });
-    return;
-  }
+  if (isNaN(analysisId)) return res.status(400).json({ error: "Invalid analysis ID" });
 
-  const analysis = await db.atsAnalysis.findUnique({
+  // Lookup analysis by its actual ID
+  console.log("req.userId:", authReq.userId);
+console.log("analysisId:", analysisId);
+
+  const analysis = await db.atsAnalysis.findFirst({
     where: { id: analysisId },
-    include: {
-      resume: { select: { userId: true } },
-    },
+    include: { resume: { select: { userId: true } } },
   });
 
-  if (!analysis) {
-    res.status(404).json({ error: "Analysis not found" });
-    return;
+  console.log("analysis fetched:", analysis);
+
+  if (!analysis) return res.status(404).json({ error: "Analysis not found" });
+
+  // Verify ownership
+  if (analysis.resume.userId !== userId) {
+    return res.status(403).json({ error: "Unauthorized" });
   }
 
-  if (analysis.resume.userId !== authReq.userId) {
-    res.status(403).json({ error: "Unauthorized" });
-    return;
-  }
+  const matchedKeywords = Array.isArray(analysis.matchedKeywords) ? analysis.matchedKeywords : [];
 
   res.json({
     analysisId: analysis.id,
     resumeId: analysis.resumeId,
-    overallScore: analysis.overallScore,
+    overallScore: analysis.atsScore,
     previousScore: analysis.previousScore ?? 0,
     jobTitle: analysis.jobTitle,
-    company: analysis.company,
-    keywordsFound: analysis.keywordsFound ?? [],
-    keywordsMissing: analysis.keywordsMissing ?? [],
-    suggestions: analysis.suggestions ?? [],
+    company: analysis.companyName,
+    keywordsFound: analysis.matchedKeywords ?? [],
+    keywordsMissing: analysis.missingKeywords ?? [],
+    suggestions: (analysis.improvementSuggestions ?? "").split("\n").map((s) => ({
+      icon: "📌",
+      color: "#7B2FFF",
+      title: s,
+      body: s,
+    })),
     categories: [
-      {
-        label: "Keyword Match",
-        score: analysis.keywordScore ?? 0,
-        note: `${analysis.keywordsFound?.length ?? 0} keywords`,
-      },
-      {
-        label: "Format & Structure",
-        score: analysis.formatScore ?? 0,
-        note: "ATS-friendliness",
-      },
-      {
-        label: "Experience Align",
-        score: analysis.experienceScore ?? 0,
-        note: "Level match",
-      },
-      {
-        label: "Skills Coverage",
-        score: analysis.skillsScore ?? 0,
-        note: "Skills matched",
-      },
-      {
-        label: "Action Words",
-        score: analysis.actionWordScore ?? 0,
-        note: "Verb strength",
-      },
+      { label: "Keyword Match", score: analysis.keywordMatchPercentage ?? 0, note: `${matchedKeywords.length} keywords`, color: "#B8FF00" },
+      { label: "Format & Structure", score: 0, note: "ATS-friendliness", color: "#00D4FF" },
+      { label: "Experience Align", score: 0, note: "Level match", color: "#7B2FFF" },
+      { label: "Skills Coverage", score: 0, note: "Skills matched", color: "#FF8C42" },
+      { label: "Action Words", score: 0, note: "Verb strength", color: "#FF4D6D" },
     ],
   });
 });
@@ -216,17 +210,15 @@ atsRouter.get("/analyses/:analysisId", async (req, res): Promise<void> => {
    Helpers
 ───────────────────────────────────────────── */
 async function createTempResume(
-  userId: string,
-  rawText: string,
-  jobTitle: string,
-  company: string
-): Promise<string> {
+  userId: number,
+  rawText: string
+): Promise<number> {
   const resume = await db.resume.create({
     data: {
       userId,
-      title: jobTitle,
-      company,
-      rawText,
+      originalText: rawText,
+      originalFilename: "temp_resume.txt", 
+      originalFileUrl: "",                 
       status: "OPTIMIZED",
     },
   });

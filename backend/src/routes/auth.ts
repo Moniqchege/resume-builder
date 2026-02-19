@@ -69,7 +69,7 @@ router.post("/login", async (req: Request, res: Response) => {
 
     // Sign JWT
     const token = jwt.sign(
-      { sub: user.id }, // sub is your user ID, matches middleware
+      { sub: user.id.toString() }, // sub is your user ID, matches middleware
       process.env.JWT_SECRET!,
       { expiresIn: "7d" }
     );
@@ -90,7 +90,6 @@ router.post("/login", async (req: Request, res: Response) => {
     res.status(500).json({ message: "Server error" });
   }
 });
-
 
 // Google OAuth
 router.get("/google", passport.authenticate("google", { scope: ["profile", "email"] }));

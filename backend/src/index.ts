@@ -8,6 +8,7 @@ import passport from "passport";
 import { setupOAuth } from "./services/oauthStrategies.js";
 import authRoutes from "./routes/auth.js";
 import resumeRouter from "./routes/resumes.js";
+import { atsRouter } from "./routes/ats.js";
 
 const app = express();
 app.use(express.json());
@@ -25,6 +26,7 @@ app.use(cors({
 }));
 
 app.use('/api/resumes', resumeRouter)
+app.use("/api/ats", atsRouter);
 
 app.use(passport.initialize());
 app.use(passport.session());

@@ -104,11 +104,11 @@ const analyzeMutation = useMutation({
     }, 200)
   },
 
-  onSuccess: (data) => {
-    setProgress(100)
-    setStage('Complete!')
-    setTimeout(() => navigate(`/ats-analyzer/${data.analysisId}`), 600)
-  },
+onSuccess: (data) => {
+  setProgress(100)
+  setStage('Complete!')
+  setTimeout(() => navigate(`/ats-analyzer/${data.analysisId}`), 600)
+},
 
   onError: (err: any) => {
     toast.error(err?.response?.data?.error ?? 'Analysis failed.')

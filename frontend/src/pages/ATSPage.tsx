@@ -52,12 +52,12 @@ export default function ATSPage() {
   const [barsReady, setBarsReady] = useState(false)
 
   // Fetch ATS data from API
-  const { data: ats = PLACEHOLDER, refetch } = useQuery<ATSData>({
-    queryKey: ['ats', analysisId],
-    queryFn: () => api.get(`/api/ats/analyses/${analysisId}`).then(r => r.data),
-    enabled: !!analysisId,
-    placeholderData: initialState || PLACEHOLDER,
-  })
+  const { data: ats = PLACEHOLDER } = useQuery<ATSData>({
+  queryKey: ['ats', analysisId],
+  queryFn: () => api.get(`/api/ats/analyses/${analysisId}`).then(r => r.data),
+  enabled: !!analysisId,
+  placeholderData: PLACEHOLDER,
+});
 
   console.log("ATS DATA:", ats)
 
@@ -88,7 +88,7 @@ export default function ATSPage() {
           <p className="text-ink-muted text-sm">{ats.jobTitle} · {ats.company} · Analyzed just now</p>
         </div>
         <div className="flex gap-2.5">
-          <button className="btn-ghost text-sm px-4 py-2.5" onClick={() => refetch()}>↻ Re-analyze</button>
+          {/* <button className="btn-ghost text-sm px-4 py-2.5" onClick={() => refetch()}>↻ Re-analyze</button> */}
           <button className="btn-lime text-sm">↓ Export PDF</button>
         </div>
       </div>
