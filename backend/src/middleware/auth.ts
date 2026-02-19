@@ -1,84 +1,55 @@
-import { Request, Response, NextFunction } from "express";
+import { Request, Response, NextFunction, RequestHandler } from "express";
 import jwt, { JwtPayload } from "jsonwebtoken";
-import { db } from "../db/prisma.js";
-
-/* ─────────────────────────────────────────────
-   Extended Request Interface
-───────────────────────────────────────────── */
-
-export interface AuthRequest extends Request {
-  userId?: string;
-  user?: {
-    id: string;
-    email: string;
-    name: string;
-    plan: string;
-  };
-}
+import { db } from "../db/prisma";
+import { AuthRequest } from "./auth-types";
 
 /* ─────────────────────────────────────────────
    Require Authentication Middleware
 ───────────────────────────────────────────── */
-
 export async function requireAuth(
   req: AuthRequest,
   res: Response,
   next: NextFunction
 ) {
   const header = req.headers.authorization;
-
-  if (!header || !header.startsWith("Bearer ")) {
-    return res
-      .status(401)
-      .json({ error: "Missing or invalid Authorization header" });
+  if (!header?.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Missing or invalid Authorization header" });
   }
 
   const token = header.slice(7);
 
   try {
-    const payload = jwt.verify(
-      token,
-      process.env.JWT_SECRET!
-    ) as JwtPayload & { sub?: string };
+    const payload = jwt.verify(token, process.env.JWT_SECRET!) as JwtPayload & { sub?: string };
+    if (!payload?.sub) return res.status(401).json({ error: "Invalid token payload" });
 
-    if (!payload?.sub) {
-      return res.status(401).json({ error: "Invalid token payload" });
-    }
-
-    // Check session in DB
-    const session = await db.session.findUnique({
+    const session = await db.sessions.findUnique({
       where: { token },
       include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            name: true,
-            plan: true,
-          },
+        users: {
+          select: { id: true, email: true, name: true, plan: true },
         },
       },
     });
 
-    if (!session) {
-      return res.status(401).json({ error: "Session not found" });
-    }
+    if (!session) return res.status(401).json({ error: "Session not found" });
 
-    if (session.expiresAt < new Date()) {
-      return res
-        .status(401)
-        .json({ error: "Session expired. Please log in again." });
-    }
+    if (new Date(session.expires_at) < new Date())
+      return res.status(401).json({ error: "Session expired" });
 
-    // Attach user to request
-    req.userId = payload.sub;
-    req.user = session.user;
+    req.userId = payload.sub; 
+    req.user = {
+      id: session.users.id,
+      email: session.users.email,
+      name: session.users.name,
+      plan: session.users.plan ?? "FREE",
+    };
 
-    return next();
-  } catch (err) {
+    next();
+  } catch {
     return res.status(401).json({ error: "Invalid or expired token" });
   }
 }
+
 
 /* ─────────────────────────────────────────────
    Optional Authentication Middleware
@@ -107,10 +78,10 @@ export async function optionalAuth(
       return next();
     }
 
-    const session = await db.session.findUnique({
+    const session = await db.sessions.findUnique({
       where: { token },
       include: {
-        user: {
+        users: {
           select: {
             id: true,
             email: true,
@@ -121,16 +92,25 @@ export async function optionalAuth(
       },
     });
 
-    if (!session || session.expiresAt < new Date()) {
+    if (!session || session.expires_at < new Date()) {
       return next();
     }
 
-    req.userId = payload.sub;
-    req.user = session.user;
+    const userId = Number(payload.sub);
+    if (isNaN(userId)) return next();
 
+    req.userId = userId;
+    req.user = {
+      id: session.users.id,
+      email: session.users.email,
+      name: session.users.name,
+      plan: session.users.plan ?? "FREE", 
+    };
   } catch {
     // silently ignore invalid tokens
   }
 
   return next();
 }
+
+

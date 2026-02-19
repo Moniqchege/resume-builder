@@ -56,33 +56,32 @@ router.post("/register", async (req: Request, res: Response) => {
   }
 });
 
-
 // Login
 router.post("/login", async (req: Request, res: Response) => {
   try {
     const { username, password } = req.body;
 
-    // Find user by username
-    const user = await db.user.findUnique({
-      where: { username }
-    });
+    const user = await db.user.findUnique({ where: { username } });
+    if (!user) return res.status(401).json({ message: "Invalid credentials" });
 
-    if (!user) {
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
-
-    // Check password
     const validPassword = await bcrypt.compare(password, user.password_hash);
-    if (!validPassword) {
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
+    if (!validPassword) return res.status(401).json({ message: "Invalid credentials" });
 
     // Sign JWT
     const token = jwt.sign(
-      { userId: user.id, username: user.username },
+      { sub: user.id }, // sub is your user ID, matches middleware
       process.env.JWT_SECRET!,
       { expiresIn: "7d" }
     );
+
+    // Store session
+    await db.sessions.create({
+      data: {
+        user_id: user.id,
+        token,
+        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+      },
+    });
 
     res.json({ token });
 

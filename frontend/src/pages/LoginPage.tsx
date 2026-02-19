@@ -225,15 +225,14 @@ return (
   }}
 >
   {/* ───── Local Auth Inputs ───── */}
-  <div style={{ position: "relative", width: "100%", maxWidth: 400 }}>
+  <div style={{ position: "relative", width: "100%", maxWidth: 540 }}>
   <input
     placeholder="Username"
     value={username}
     onChange={(e) => setUsername(e.target.value)}
-    // autoComplete="off" 
     style={{
       width: "100%",
-      maxWidth: 400,
+      maxWidth: 540,
       padding: "11px 16px",
       borderRadius: 14,
       border: "1px solid rgba(255,255,255,0.08)",
@@ -256,16 +255,15 @@ return (
           }}
         />
   </div>
-  <div style={{ position: "relative", width: "100%", maxWidth: 400 }}>
+  <div style={{ position: "relative", width: "100%", maxWidth: 540 }}>
   <input
     type={showPassword ? "text" : "password"}
     placeholder="Password"
     value={password}
     onChange={(e) => setPassword(e.target.value)}
-    autoComplete="new-password"
     style={{
       width: "100%",
-      maxWidth: 400,
+      maxWidth: 540,
       padding: "11px 16px",
       borderRadius: 14,
       border: "1px solid rgba(255,255,255,0.08)",
@@ -294,7 +292,7 @@ return (
   </div>
 
    {isRegister && (
-            <div style={{ position: "relative", width: "100%", maxWidth: 400 }}>
+            <div style={{ position: "relative", width: "100%", maxWidth: 540 }}>
               <input
                 type={showConfirmPassword ? "text" : "password"}
                 placeholder="Confirm Password"
@@ -344,7 +342,7 @@ return (
           ? "0 8px 24px rgba(0,212,255,0.12)"
           : "none",
       width: "100%",
-      maxWidth: 400,
+      maxWidth: 540,
     }}
   >
     {isRegister ? "Register" : "Login"}
@@ -395,6 +393,14 @@ return (
   </div>
 
   {/* ───── OAuth Providers ───── */}
+  <div
+  style={{
+    display: "flex",
+    gap: 16,
+    justifyContent: "center", // optional
+    flexWrap: "wrap", // keeps responsiveness
+  }}
+>
   {providers.map((p) => (
     <button
       key={p.id}
@@ -428,8 +434,8 @@ return (
           hoveredProvider === p.id
             ? "0 8px 24px rgba(0,212,255,0.12)"
             : "none",
-        width: "100%",
-        maxWidth: 300,
+        width: "auto",
+minWidth: 180,
       }}
     >
       <span
@@ -441,7 +447,7 @@ return (
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontSize: 13,
+          fontSize: 12,
           fontWeight: 800,
           color: p.color,
           border: `1px solid ${p.color}30`,
@@ -452,6 +458,7 @@ return (
       Continue with {p.label}
     </button>
   ))}
+  </div>
 </div>
     </div>
 

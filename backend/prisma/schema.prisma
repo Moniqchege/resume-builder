@@ -19,6 +19,7 @@ model User {
   plan          Plan?      @default(FREE)
   createdAt     DateTime?  @default(now()) @map("created_at") @db.Timestamp(0)
   updatedAt     DateTime?  @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+  resumes       Resume[]
   sessions      sessions[]
 
   @@map("users")
@@ -33,6 +34,49 @@ model sessions {
   users      User      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "sessions_ibfk_1")
 
   @@index([user_id], map: "user_id")
+  @@map("sessions")
+}
+
+model Resume {
+  id               Int           @id @default(autoincrement())
+  userId           Int           @map("user_id")
+  originalFilename String        @map("original_filename") @db.VarChar(255)
+  originalFileUrl  String        @map("original_file_url") @db.VarChar(500)
+  originalText     String        @map("original_text") @db.LongText
+  optimizedText    String?       @map("optimized_text") @db.LongText
+  version          Int?          @default(1)
+  isActive         Boolean?      @default(true) @map("is_active")
+  status           String @default("DRAFT")
+  currentScore     Int    @default(0) 
+  createdAt        DateTime?     @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt        DateTime?     @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+  atsAnalyses      AtsAnalysis[] @relation("ResumeToATS")
+  users            User          @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_resumes_user")
+
+  @@index([isActive], map: "idx_resumes_active")
+  @@index([userId], map: "idx_resumes_user")
+  @@map("resumes")
+}
+
+model AtsAnalysis {
+  id                     Int       @id @default(autoincrement())
+  resumeId               Int       @map("resume_id")
+  jobDescription         String?   @map("job_description") @db.LongText
+  jobTitle               String?   @map("job_title") @db.VarChar(255)
+  companyName            String?   @map("company_name") @db.VarChar(255)
+  atsScore               Int       @map("ats_score")
+  keywordMatchPercentage Decimal?  @map("keyword_match_percentage") @db.Decimal(5, 2)
+  missingKeywords        Json?     @map("missing_keywords")
+  matchedKeywords        Json?     @map("matched_keywords")
+  improvementSuggestions String?   @map("improvement_suggestions") @db.LongText
+  optimizedResumeText    String?   @map("optimized_resume_text") @db.LongText
+  createdAt              DateTime? @default(now()) @map("created_at") @db.Timestamp(0)
+  previousScore Int? @map("previous_score")
+  resume                 Resume    @relation("ResumeToATS", fields: [resumeId], references: [id], onDelete: Cascade, map: "fk_ats_resume")
+
+  @@index([resumeId], map: "idx_ats_resume")
+  @@index([atsScore], map: "idx_ats_score")
+  @@map("ats_analyses")
 }
 
 enum Plan {

@@ -1,15 +1,18 @@
+// pages/ATSPage.tsx
 import { useState, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import ScoreRing from '@components/ats/ScoreRing'
 import { scoreColor } from '@lib/utils'
 import api from '@lib/api'
 
 interface ATSData {
-  overallScore:    number
-  previousScore:   number
-  jobTitle:        string
-  company:         string
+  resumeId:      number
+  analysisId:    number
+  overallScore:  number
+  previousScore: number
+  jobTitle:      string
+  company:       string
   categories: {
     label: string
     score: number
@@ -26,45 +29,44 @@ interface ATSData {
   }[]
 }
 
+// Optional placeholder for smooth initial render
 const PLACEHOLDER: ATSData = {
-  overallScore:  88,
-  previousScore: 54,
-  jobTitle:      'Senior Frontend Engineer',
-  company:       'Stripe',
-  categories: [
-    { label: 'Keyword Match',      score: 92, note: '23/25 keywords', color: '#B8FF00' },
-    { label: 'Format & Structure', score: 95, note: 'ATS-friendly',   color: '#00D4FF' },
-    { label: 'Experience Align',   score: 80, note: '4.5 / 5 yrs',   color: '#7B2FFF' },
-    { label: 'Skills Coverage',    score: 78, note: '14/18 skills',   color: '#FF8C42' },
-    { label: 'Action Words',       score: 90, note: 'Strong verbs',   color: '#FF4D6D' },
-  ],
-  keywordsFound:   ['React','TypeScript','Next.js','REST APIs','Performance','Node.js','Git','A/B Testing','Webpack'],
-  keywordsMissing: ['GraphQL','CI/CD (GitHub Actions)','Agile/Scrum','Vite'],
-  suggestions: [
-    { icon: '📌', color: '#7B2FFF', title: 'Add GraphQL',        body: 'Appears 4× in the JD. Even basic familiarity counts — add it to your skills section.' },
-    { icon: '⚙️', color: '#00D4FF', title: 'Mention CI/CD tools', body: 'Reference GitHub Actions specifically. This role requires it 3× in the requirements.' },
-    { icon: '📊', color: '#FF4D6D', title: 'Quantify impact',     body: '"Reduced bundle size by 40%" outperforms "improved performance" by 3× in ATS ranking.' },
-  ],
+  resumeId: 0,
+  analysisId: 0,
+  overallScore: 0,
+  previousScore: 0,
+  jobTitle: 'Loading…',
+  company: '',
+  categories: [],
+  keywordsFound: [],
+  keywordsMissing: [],
+  suggestions: [],
 }
 
 export default function ATSPage() {
   const { analysisId } = useParams<{ analysisId: string }>()
-  const [animScore, setAnimScore] = useState(0)
+  const location = useLocation()
+  const initialState = (location.state as { ats?: ATSData })?.ats
+
+  const [animScore, setAnimScore] = useState(initialState?.overallScore || 0)
   const [barsReady, setBarsReady] = useState(false)
 
-  const { data: ats = PLACEHOLDER } = useQuery<ATSData>({
+  // Fetch ATS data from API
+  const { data: ats = PLACEHOLDER, refetch } = useQuery<ATSData>({
     queryKey: ['ats', analysisId],
-    queryFn:  () => api.get(`/api/ats/analyses/${analysisId}`).then(r => r.data),
-    enabled:  !!analysisId,
-    placeholderData: PLACEHOLDER,
+    queryFn: () => api.get(`/api/ats/analyses/${analysisId}`).then(r => r.data),
+    enabled: !!analysisId,
+    placeholderData: initialState || PLACEHOLDER,
   })
 
-  // Animate score counter
+  console.log("ATS DATA:", ats)
+
+  // Animate overall score
   useEffect(() => {
     let cur = 0
     const target = ats.overallScore
     const iv = setInterval(() => {
-      cur += 2.4
+      cur += Math.max(target / 40, 1) // adjust speed relative to score
       setAnimScore(Math.min(cur, target))
       if (cur >= target) clearInterval(iv)
     }, 18)
@@ -73,8 +75,8 @@ export default function ATSPage() {
   }, [ats.overallScore])
 
   const circumference = 2 * Math.PI * 72
-  const dashOffset    = circumference - (circumference * animScore / 100)
-  const delta         = ats.overallScore - ats.previousScore
+  const dashOffset = circumference - (circumference * animScore) / 100
+  const delta = ats.overallScore - ats.previousScore
 
   return (
     <div className="animate-fade-up space-y-6">
@@ -86,7 +88,7 @@ export default function ATSPage() {
           <p className="text-ink-muted text-sm">{ats.jobTitle} · {ats.company} · Analyzed just now</p>
         </div>
         <div className="flex gap-2.5">
-          <button className="btn-ghost text-sm px-4 py-2.5">↻ Re-analyze</button>
+          <button className="btn-ghost text-sm px-4 py-2.5" onClick={() => refetch()}>↻ Re-analyze</button>
           <button className="btn-lime text-sm">↓ Export PDF</button>
         </div>
       </div>
@@ -94,12 +96,16 @@ export default function ATSPage() {
       <div className="grid grid-cols-[270px_1fr] gap-5">
         {/* ── Score Donut Card ── */}
         <div className="glass-card p-8 flex flex-col items-center text-center">
-          {/* Animated donut */}
           <div className="relative w-[180px] h-[180px] mb-5">
             <svg width="180" height="180" viewBox="0 0 180 180" style={{ transform: 'rotate(-90deg)' }}>
               <circle cx="90" cy="90" r="72" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="14" />
-              <circle cx="90" cy="90" r="72" fill="none"
-                stroke="url(#bigGrad)" strokeWidth="14"
+              <circle
+                cx="90"
+                cy="90"
+                r="72"
+                fill="none"
+                stroke="url(#bigGrad)"
+                strokeWidth="14"
                 strokeLinecap="round"
                 strokeDasharray={circumference}
                 strokeDashoffset={dashOffset}
@@ -107,8 +113,8 @@ export default function ATSPage() {
               />
               <defs>
                 <linearGradient id="bigGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%"   stopColor="#00D4FF" />
-                  <stop offset="50%"  stopColor="#7B2FFF" />
+                  <stop offset="0%" stopColor="#00D4FF" />
+                  <stop offset="50%" stopColor="#7B2FFF" />
                   <stop offset="100%" stopColor="#B8FF00" />
                 </linearGradient>
               </defs>
@@ -125,10 +131,6 @@ export default function ATSPage() {
           <div className="px-5 py-2 rounded-full bg-lime/10 border border-lime/20 text-lime text-[12px] font-bold font-mono mb-4 animate-scale-in">
             ✓ HIGH MATCH
           </div>
-
-          <p className="text-[13px] text-ink-muted leading-[1.6] mb-6">
-            Strong chance of passing ATS filters for this role
-          </p>
 
           {/* Before / After */}
           <div className="w-full p-4 rounded-xl bg-space-surface/60 border border-dashed border-cyan/15">
@@ -167,9 +169,9 @@ export default function ATSPage() {
                     <div
                       className="h-full rounded-full transition-all duration-1000"
                       style={{
-                        width:      barsReady ? `${cat.score}%` : '0%',
+                        width: barsReady ? `${cat.score}%` : '0%',
                         background: `linear-gradient(90deg, ${cat.color}99, ${cat.color})`,
-                        boxShadow:  `0 0 10px ${cat.color}44`,
+                        boxShadow: `0 0 10px ${cat.color}44`,
                         transitionDelay: `${i * 0.1}s`,
                       }}
                     />
@@ -217,7 +219,7 @@ export default function ATSPage() {
         <div className="grid grid-cols-3 gap-4">
           {ats.suggestions.map((s, i) => (
             <div key={i} className="p-5 rounded-2xl"
-              style={{ background: `${s.color}09`, border: `1px solid ${s.color}22` }}>
+                 style={{ background: `${s.color}09`, border: `1px solid ${s.color}22` }}>
               <div className="text-2xl mb-2.5">{s.icon}</div>
               <p className="text-[13px] font-bold mb-2" style={{ color: s.color }}>{s.title}</p>
               <p className="text-[12px] text-ink-muted leading-[1.6]">{s.body}</p>

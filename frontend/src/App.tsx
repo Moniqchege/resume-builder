@@ -26,7 +26,7 @@ export default function App() {
         <Route index element={<BuilderPage />} />
       </Route>
        <Route path="/ats-analyzer" element={<AppLayout />}>
-        <Route index element={<ATSPage />} />
+      <Route path=":analysisId" element={<ATSPage />} />
       </Route>
       </Routes>
   );

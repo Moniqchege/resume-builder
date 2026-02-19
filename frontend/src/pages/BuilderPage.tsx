@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
 import { useDropzone } from 'react-dropzone'
@@ -37,57 +37,93 @@ export default function BuilderPage() {
   const [progress, setProgress] = useState(0)
   const [stage, setStage]       = useState('')
 
-  // File upload via dropzone
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    accept: { 'application/pdf': ['.pdf'], 'application/msword': ['.doc', '.docx'], 'text/plain': ['.txt'] },
-    maxFiles: 1,
-    onDrop: (files) => {
-      if (files[0]) {
-        const reader = new FileReader()
-        reader.onload = (e) => setJd(e.target?.result as string || '')
-        reader.readAsText(files[0])
-      }
-    },
-  })
+useEffect(() => {
+  async function checkResume() {
+    const res = await api.get('/api/resumes')
+    if (res.data.resumes.length) {
+      localStorage.setItem('activeResumeId', res.data.resumes[0].id)
+    }
+  }
 
-  // Mutation: send JD + resume to backend for analysis
-  const analyzeMutation = useMutation({
-    mutationFn: (payload: { jobDescription: string }) =>
-      api.post('/api/ats/analyze', payload).then(r => r.data),
+  checkResume()
+}, [])
 
-    onMutate: () => {
-      setStep(1)
-      setProgress(0)
-      // Simulate progress while waiting for real API
-      let p = 0
-      let si = 0
-      setStage(ANALYSIS_STAGES[0])
-      const iv = setInterval(() => {
-        p += Math.random() * 10 + 2
-        setProgress(Math.min(p, 90))
-        si = Math.min(Math.floor((p / 100) * ANALYSIS_STAGES.length), ANALYSIS_STAGES.length - 1)
-        setStage(ANALYSIS_STAGES[si])
-        if (p >= 90) clearInterval(iv)
-      }, 200)
-    },
+ const { getRootProps, getInputProps, isDragActive } = useDropzone({
+  accept: {
+    'application/pdf': ['.pdf'],
+    'application/msword': ['.doc', '.docx'],
+    'text/plain': ['.txt']
+  },
+  maxFiles: 1,
+  onDrop: async (files) => {
+    const file = files[0]
+    if (!file) return
 
-    onSuccess: (data) => {
-      setProgress(100)
-      setStage('Complete!')
-      setTimeout(() => navigate(`/ats/${data.analysisId}`), 600)
-    },
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
 
-    onError: () => {
-      toast.error('Analysis failed. Please try again.')
-      setStep(0)
-      setProgress(0)
-    },
-  })
+      const res = await api.post('/api/resumes/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+
+      localStorage.setItem('activeResumeId', res.data.resumeId)
+      toast.success('Resume uploaded successfully!')
+    } catch (err: any) {
+      console.error(err)
+      toast.error(err?.response?.data?.error ?? 'Resume upload failed.')
+    }
+  },
+})
+
+
+const resumeId = localStorage.getItem('activeResumeId') 
+
+const analyzeMutation = useMutation({
+  mutationFn: (payload: { jobDescription: string }) =>
+    api
+      .post(`/api/resumes/${resumeId}/optimize`, payload)
+      .then(r => r.data),
+
+  onMutate: () => {
+    setStep(1)
+    setProgress(0)
+    let p = 0
+    let si = 0
+    setStage(ANALYSIS_STAGES[0])
+
+    const iv = setInterval(() => {
+      p += Math.random() * 10 + 2
+      setProgress(Math.min(p, 90))
+      si = Math.min(
+        Math.floor((p / 100) * ANALYSIS_STAGES.length),
+        ANALYSIS_STAGES.length - 1
+      )
+      setStage(ANALYSIS_STAGES[si])
+      if (p >= 90) clearInterval(iv)
+    }, 200)
+  },
+
+  onSuccess: (data) => {
+    setProgress(100)
+    setStage('Complete!')
+    setTimeout(() => navigate(`/ats-analyzer/${data.analysisId}`), 600)
+  },
+
+  onError: (err: any) => {
+    toast.error(err?.response?.data?.error ?? 'Analysis failed.')
+    setStep(0)
+    setProgress(0)
+  },
+})
 
   function handleAnalyze() {
-    if (!jd.trim()) return toast.error('Please paste a job description first.')
-    analyzeMutation.mutate({ jobDescription: jd })
-  }
+  const resumeId = localStorage.getItem('activeResumeId')
+  if (!resumeId) return toast.error('Please upload your resume first.')
+  if (!jd.trim()) return toast.error('Please paste a job description first.')
+
+  analyzeMutation.mutate({ jobDescription: jd })
+}
 
   const wordCount = jd.split(/\s+/).filter(Boolean).length
 
@@ -125,7 +161,7 @@ export default function BuilderPage() {
         })}
       </div>
 
-      <div className="grid grid-cols-[1fr_300px] gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-5">
         {/* ── JD Input Zone ── */}
         <div>
           <div className={`glass-card overflow-hidden transition-colors ${jd ? 'border-cyan/30' : 'border-space-border'}`}>

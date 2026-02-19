@@ -1,5 +1,4 @@
 import axios from 'axios'
-
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:4000',
   withCredentials: true,
@@ -10,7 +9,10 @@ const api = axios.create({
 // ── Request interceptor: attach token ─────────────────────
 api.interceptors.request.use(
   (config) => {
-    // Token is set on the instance via authStore.setToken()
+    const token = localStorage.getItem('token') 
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
     return config
   },
   (error) => Promise.reject(error)

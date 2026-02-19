@@ -3,6 +3,17 @@
 @tailwind utilities;
 
 @layer base {
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #0f1629 inset !important; 
+  -webkit-text-fill-color: #E8EDF5 !important; 
+  border-radius: 0.75rem !important;
+  border: 1px solid #0f1629 !important; 
+  transition: background-color 5000s ease-in-out 0s !important;
+  background-clip: padding-box !important;
+}
   * {
     @apply box-border;
   }
@@ -103,3 +114,5 @@
   .glow-lime   { box-shadow: 0 0 20px rgba(184, 255, 0, 0.35); }
   .glow-violet { box-shadow: 0 0 20px rgba(123, 47, 255, 0.35); }
 }
+
+
