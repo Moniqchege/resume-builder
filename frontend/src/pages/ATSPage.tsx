@@ -1,4 +1,3 @@
-// pages/ATSPage.tsx
 import { useState, useEffect } from 'react'
 import { useParams, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
@@ -29,7 +28,6 @@ interface ATSData {
   }[]
 }
 
-// Optional placeholder for smooth initial render
 const PLACEHOLDER: ATSData = {
   resumeId: 0,
   analysisId: 0,
@@ -51,8 +49,7 @@ export default function ATSPage() {
   const [animScore, setAnimScore] = useState(initialState?.overallScore || 0)
   const [barsReady, setBarsReady] = useState(false)
 
-  // Fetch ATS data from API
-  const { data: ats = PLACEHOLDER } = useQuery<ATSData>({
+  const { data: ats = PLACEHOLDER, refetch, isFetching } = useQuery<ATSData>({
   queryKey: ['ats', analysisId],
   queryFn: () => api.get(`/api/ats/analyses/${analysisId}`).then(r => r.data),
   enabled: !!analysisId,
@@ -61,18 +58,55 @@ export default function ATSPage() {
 
   console.log("ATS DATA:", ats)
 
-  // Animate overall score
   useEffect(() => {
     let cur = 0
     const target = ats.overallScore
     const iv = setInterval(() => {
-      cur += Math.max(target / 40, 1) // adjust speed relative to score
+      cur += Math.max(target / 40, 1) 
       setAnimScore(Math.min(cur, target))
       if (cur >= target) clearInterval(iv)
     }, 18)
     setTimeout(() => setBarsReady(true), 400)
     return () => clearInterval(iv)
   }, [ats.overallScore])
+
+  const [categoryWidths, setCategoryWidths] = useState<number[]>(() =>
+  ats.categories.map(() => 0)
+)
+
+useEffect(() => {
+  setCategoryWidths(ats.categories.map(() => 0))
+  const ivs: NodeJS.Timeout[] = []
+
+  ats.categories.forEach((cat, i) => {
+    ivs[i] = setInterval(() => {
+      setCategoryWidths((prev) => {
+        const next = [...prev]
+        next[i] = Math.min((prev[i] ?? 0) + Math.max(cat.score / 40, 1), cat.score)
+        return next
+      })
+    }, 18)
+  })
+
+  return () => ivs.forEach(clearInterval)
+}, [ats.categories])
+
+  const handleDownloadPDF = async () => {
+  try {
+    const response = await api.get(`/api/resumes/${ats.resumeId}`);
+    const resume = response.data;
+
+    if (!resume.optimizedFileUrl) {
+      alert('Optimized PDF not available yet.');
+      return;
+    }
+    window.open(resume.optimizedFileUrl, '_blank');
+
+  } catch (err) {
+    console.error('Failed to open PDF:', err);
+    alert('Failed to open PDF.');
+  }
+};
 
   const circumference = 2 * Math.PI * 72
   const dashOffset = circumference - (circumference * animScore) / 100
@@ -88,12 +122,12 @@ export default function ATSPage() {
           <p className="text-ink-muted text-sm">{ats.jobTitle} · {ats.company} · Analyzed just now</p>
         </div>
         <div className="flex gap-2.5">
-          {/* <button className="btn-ghost text-sm px-4 py-2.5" onClick={() => refetch()}>↻ Re-analyze</button> */}
+          <button className="btn-ghost text-sm px-4 py-2.5" onClick={() => refetch()} disabled={isFetching}>{isFetching ? "Re-analyzing..." : "↻ Re-analyze"}</button>
           <button className="btn-lime text-sm">↓ Export PDF</button>
         </div>
       </div>
 
-      <div className="grid grid-cols-[270px_1fr] gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-[270px_1fr] gap-5">
         {/* ── Score Donut Card ── */}
         <div className="glass-card p-8 flex flex-col items-center text-center">
           <div className="relative w-[180px] h-[180px] mb-5">
@@ -153,32 +187,35 @@ export default function ATSPage() {
         {/* ── Right Column ── */}
         <div className="flex flex-col gap-4">
           {/* Category Bars */}
-          <div className="glass-card p-6">
-            <h3 className="text-[14px] font-bold text-ink-primary mb-5">Category Breakdown</h3>
-            <div className="space-y-4">
-              {ats.categories.map((cat, i) => (
-                <div key={cat.label}>
-                  <div className="flex justify-between mb-1.5">
-                    <div>
-                      <span className="text-[13px] font-bold text-ink-primary">{cat.label}</span>
-                      <span className="text-[11px] text-ink-dim font-mono ml-2">{cat.note}</span>
-                    </div>
-                    <span className="text-[13px] font-bold font-mono" style={{ color: cat.color }}>{cat.score}%</span>
-                  </div>
-                  <div className="h-2 rounded-full bg-space-surface/60 overflow-hidden">
-                    <div
-                      className="h-full rounded-full transition-all duration-1000"
-                      style={{
-                        width: barsReady ? `${cat.score}%` : '0%',
-                        background: `linear-gradient(90deg, ${cat.color}99, ${cat.color})`,
-                        boxShadow: `0 0 10px ${cat.color}44`,
-                        transitionDelay: `${i * 0.1}s`,
-                      }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
+<div className="glass-card p-6">
+  <h3 className="text-[14px] font-bold text-ink-primary mb-5">Category Breakdown</h3>
+
+  <div className="space-y-4">
+   {ats.categories.map((cat, i) => (
+  <div key={cat.label}>
+    <div className="flex justify-between mb-1.5">
+      <div>
+        <span className="text-[13px] font-bold text-ink-primary">{cat.label}</span>
+        <span className="text-[11px] text-ink-dim font-mono ml-2">{cat.note}</span>
+      </div>
+      <span className="text-[13px] font-bold font-mono" style={{ color: cat.color }}>
+        {Math.round(categoryWidths[i] ?? 0)}%
+      </span>
+    </div>
+    <div className="h-2 rounded-full bg-space-surface/60 overflow-hidden">
+      <div
+        className="h-full rounded-full transition-all duration-1000"
+        style={{
+          width: `${categoryWidths[i] ?? 0}%`,
+          background: `linear-gradient(90deg, ${cat.color}99, ${cat.color})`,
+          boxShadow: `0 0 10px ${cat.color}44`,
+          transitionDelay: `${i * 0.1}s`,
+        }}
+      />
+    </div>
+  </div>
+))}
+ </div>
           </div>
 
           {/* Keywords — Found & Missing */}
@@ -216,7 +253,7 @@ export default function ATSPage() {
           <span className="w-6 h-6 rounded-lg bg-grad-cyan flex items-center justify-center text-[11px] text-space-bg">✦</span>
           AI Optimization Suggestions
         </h3>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {ats.suggestions.map((s, i) => (
             <div key={i} className="p-5 rounded-2xl"
                  style={{ background: `${s.color}09`, border: `1px solid ${s.color}22` }}>
@@ -229,9 +266,9 @@ export default function ATSPage() {
       </div>
 
       {/* ── Action Row ── */}
-      <div className="flex gap-3">
+      <div className="flex flex-col sm:flex-row gap-3">
         <button className="btn-primary flex-1 text-center">✦ Apply AI Suggestions</button>
-        <button className="btn-lime flex-1 text-center">↓ Export Optimized PDF</button>
+        <button className="btn-lime flex-1 text-center" onClick={handleDownloadPDF}>↓ Export Optimized PDF</button>
         <button className="flex-1 text-center py-3 rounded-xl font-bold text-[14px]
                            bg-grad-violet text-white shadow-violet
                            hover:-translate-y-0.5 transition-all duration-200">

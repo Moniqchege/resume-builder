@@ -38,20 +38,21 @@ model sessions {
 }
 
 model Resume {
-  id               Int           @id @default(autoincrement())
-  userId           Int           @map("user_id")
-  originalFilename String        @map("original_filename") @db.VarChar(255)
-  originalFileUrl  String        @map("original_file_url") @db.VarChar(500)
-  originalText     String        @map("original_text") @db.LongText
-  optimizedText    String?       @map("optimized_text") @db.LongText
-  version          Int?          @default(1)
-  isActive         Boolean?      @default(true) @map("is_active")
-  status           String @default("DRAFT")
-  currentScore     Int    @default(0) 
-  createdAt        DateTime?     @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt        DateTime?     @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
-  atsAnalyses      AtsAnalysis[] @relation("ResumeToATS")
-  users            User          @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_resumes_user")
+  id                Int           @id @default(autoincrement())
+  userId            Int           @map("user_id")
+  originalFilename  String        @map("original_filename") @db.VarChar(255)
+  originalFileUrl   String        @map("original_file_url") @db.VarChar(500)
+  originalText      String        @map("original_text") @db.LongText
+  optimizedText     String?       @map("optimized_text") @db.LongText
+  optimizedFileUrl  String?       @map("optimized_file_url") @db.VarChar(500) 
+  version           Int?          @default(1)
+  isActive          Boolean?      @default(true) @map("is_active")
+  status            String        @default("DRAFT")
+  currentScore      Int           @default(0)
+  createdAt         DateTime?     @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt         DateTime?     @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+  atsAnalyses       AtsAnalysis[] @relation("ResumeToATS")
+  users             User          @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_resumes_user")
 
   @@index([isActive], map: "idx_resumes_active")
   @@index([userId], map: "idx_resumes_user")

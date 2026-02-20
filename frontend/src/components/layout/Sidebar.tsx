@@ -6,8 +6,8 @@ import { LayoutDashboard, Sparkles, Target, LogOut, Menu } from 'lucide-react'
 
 const NAV = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/resume-builder', icon: Sparkles, label: 'Builder' },
-  { to: '/ats-analyzer', icon: Target, label: 'ATS Analyzer' },
+  { to: '/resume-builder', icon: Sparkles, label: 'Resume Builder' },
+  // { to: '/ats-analyzer', icon: Target, label: 'ATS Analyzer' },
 ]
 
 export default function Sidebar() {
@@ -17,7 +17,7 @@ export default function Sidebar() {
 
   const handleNavClick = (to: string) => {
     navigate(to)
-    setIsOpen(false) // auto-close on mobile/tablet
+    setIsOpen(false) 
   }
 
   return (
@@ -34,8 +34,8 @@ export default function Sidebar() {
       <aside
         className={cn(
           "fixed top-0 left-0 h-full w-[220px] bg-space-bg/95 border-r border-space-border backdrop-blur-xl flex flex-col px-3 z-40 transform transition-transform duration-300",
-          "lg:translate-x-0", // always visible on large screens
-          isOpen ? "translate-x-0" : "-translate-x-full", // toggle on mobile
+          "lg:translate-x-0", 
+          isOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
         {/* Logo */}

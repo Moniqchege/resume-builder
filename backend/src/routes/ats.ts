@@ -24,9 +24,8 @@ const AnalyzeSchema = z.object({
   company: z.string().max(200).optional(),
 });
 
-/* ─────────────────────────────────────────────
-   POST /api/ats/analyze
-───────────────────────────────────────────── */
+
+  //  POST /api/ats/analyze
 atsRouter.post("/analyze", async (req, res): Promise<void> => {
   const authReq = req as AuthRequest;
 
@@ -53,7 +52,6 @@ atsRouter.post("/analyze", async (req, res): Promise<void> => {
   let text = resumeText;
   let resume: Resume | null = null;
 
-  // Ensure userId is a number
   const userId = Number(authReq.userId);
   if (isNaN(userId)) {
     res.status(401).json({ error: "Invalid user" });
@@ -89,79 +87,74 @@ atsRouter.post("/analyze", async (req, res): Promise<void> => {
     return;
   }
 
-  try {
-    const keywords = await extractKeywords(jobDescription);
-    const breakdown = await scoreATS(text, jobDescription, keywords);
-    const suggestions = await generateSuggestions(breakdown, jobTitle, company);
+ try {
+  const keywords = await extractKeywords(jobDescription);
+  const breakdown = await scoreATS(text, jobDescription, keywords);
+  const suggestions = await generateSuggestions(breakdown, jobTitle, company);
 
-    let previousScore = 0;
+  let previousScore = 0;
 
-    if (resume) {
-      const lastAnalysis = await db.atsAnalysis.findFirst({
-        where: { resumeId: resume.id },
-        orderBy: { createdAt: "desc" },
-        select: { atsScore: true, previousScore: true },
-      });
-
-      previousScore = lastAnalysis?.previousScore ?? 0;
-    }
-
- const analysis = await db.atsAnalysis.create({
-  data: {
-    resumeId: resume?.id ?? (await createTempResume(authReq.userId!, text)),
-    jobDescription,
-    jobTitle: jobTitle ?? "Unknown Role",
-    companyName: company ?? "Unknown Company",
-    atsScore: breakdown.overallScore,
-    keywordMatchPercentage: breakdown.keywordScore ?? 0,
-    previousScore,
-    matchedKeywords: breakdown.keywordsFound || [],
-    missingKeywords: breakdown.keywordsMissing || [],
-    improvementSuggestions: suggestions.join("\n") || "",
-  },
-});
-
-console.log("Created analysis:", analysis.id);
-
-    if (resume) {
-      await db.resume.update({
-        where: { id: resume.id },
-        data: { status: "OPTIMIZED" },
-      });
-    }
-
-    res.json({
-      analysisId: analysis.id,
-      atsScore: analysis.atsScore,
-      previousScore: analysis.previousScore,
-      keywordsFound: analysis.matchedKeywords ?? [],
-      keywordsMissing: analysis.missingKeywords ?? [],
-      suggestions,
+  if (resume) {
+    const lastAnalysis = await db.atsAnalysis.findFirst({
+      where: { resumeId: resume.id },
+      orderBy: { createdAt: "desc" },
+      select: { atsScore: true, previousScore: true },
     });
-  } catch (err) {
-    if (resumeId) {
-      await db.resume.update({
-        where: { id: Number(resumeId) },
-        data: { status: "DRAFT" },
-      }).catch(() => {});
-    }
 
-    throw err;
+    previousScore = lastAnalysis?.previousScore ?? 0;
   }
-});
+
+  const analysis = await db.atsAnalysis.create({
+    data: {
+      resumeId: resume?.id ?? await createTempResume(userId, text),
+      jobDescription,
+      jobTitle: jobTitle ?? "Unknown Role",
+      companyName: company ?? "Unknown Company",
+      atsScore: breakdown.overallScore,
+      keywordMatchPercentage: breakdown.keywordScore,
+      previousScore,
+      matchedKeywords: breakdown.keywordsFound,
+      missingKeywords: breakdown.keywordsMissing,
+      improvementSuggestions: suggestions.map(s => s.title).join("\n"),
+    },
+  });
+
+  if (resume) {
+    await db.resume.update({
+      where: { id: resume.id },
+      data: { status: "OPTIMIZED" },
+    });
+  }
+
+  res.json({
+    analysisId: analysis.id,
+    atsScore: analysis.atsScore,
+    previousScore: analysis.previousScore,
+    keywordsFound: analysis.matchedKeywords ?? [],
+    keywordsMissing: analysis.missingKeywords ?? [],
+    suggestions,
+  });
+
+} catch (err) {
+  if (resumeId) {
+    await db.resume.update({
+      where: { id: Number(resumeId) },
+      data: { status: "DRAFT" },
+    }).catch(() => {});
+  }
+  throw err;
+}
+})
 
 
-/* ─────────────────────────────────────────────
-   GET /api/ats/analyses/:analysisId
-───────────────────────────────────────────── */
+
+  //  GET /api/ats/analyses/:analysisId
 atsRouter.get("/analyses/:id", async (req, res) => {
   const analysisId = Number(req.params.id);
   const authReq = req as AuthRequest;
   const userId = Number(authReq.userId);
 
   if (isNaN(analysisId)) return res.status(400).json({ error: "Invalid analysis ID" });
-
-  // Lookup analysis by its actual ID
   console.log("req.userId:", authReq.userId);
 console.log("analysisId:", analysisId);
 
@@ -173,42 +166,38 @@ console.log("analysisId:", analysisId);
   console.log("analysis fetched:", analysis);
 
   if (!analysis) return res.status(404).json({ error: "Analysis not found" });
-
-  // Verify ownership
   if (analysis.resume.userId !== userId) {
     return res.status(403).json({ error: "Unauthorized" });
   }
 
-  const matchedKeywords = Array.isArray(analysis.matchedKeywords) ? analysis.matchedKeywords : [];
+const matchedKeywords = Array.isArray(analysis.matchedKeywords) ? analysis.matchedKeywords : []
+const missingKeywords = Array.isArray(analysis.missingKeywords) ? analysis.missingKeywords : []
 
-  res.json({
-    analysisId: analysis.id,
-    resumeId: analysis.resumeId,
-    overallScore: analysis.atsScore,
-    previousScore: analysis.previousScore ?? 0,
-    jobTitle: analysis.jobTitle,
-    company: analysis.companyName,
-    keywordsFound: analysis.matchedKeywords ?? [],
-    keywordsMissing: analysis.missingKeywords ?? [],
-    suggestions: (analysis.improvementSuggestions ?? "").split("\n").map((s) => ({
-      icon: "📌",
-      color: "#7B2FFF",
-      title: s,
-      body: s,
-    })),
-    categories: [
-      { label: "Keyword Match", score: analysis.keywordMatchPercentage ?? 0, note: `${matchedKeywords.length} keywords`, color: "#B8FF00" },
-      { label: "Format & Structure", score: 0, note: "ATS-friendliness", color: "#00D4FF" },
-      { label: "Experience Align", score: 0, note: "Level match", color: "#7B2FFF" },
-      { label: "Skills Coverage", score: 0, note: "Skills matched", color: "#FF8C42" },
-      { label: "Action Words", score: 0, note: "Verb strength", color: "#FF4D6D" },
-    ],
-  });
+res.json({
+  analysisId: analysis.id,
+  resumeId: analysis.resumeId,
+  overallScore: analysis.atsScore ?? 0,
+  previousScore: analysis.previousScore ?? 0,
+  jobTitle: analysis.jobTitle ?? "Unknown Role",
+  company: analysis.companyName ?? "Unknown Company",
+  keywordMatchPercentage: analysis.keywordMatchPercentage ?? 0,
+  keywordsFound: matchedKeywords,
+  keywordsMissing: missingKeywords,
+  suggestions: (analysis.improvementSuggestions ?? "")
+    .split("\n")
+    .filter(Boolean)
+    .map((s) => ({ icon: "📌", color: "#7B2FFF", title: s, body: s })),
+  categories: [
+    { label: "Keyword Match", score: analysis.keywordMatchPercentage ?? 0, note: `${matchedKeywords.length} keywords`, color: "#B8FF00" },
+    { label: "Format & Structure", score: 0, note: "ATS-friendliness", color: "#00D4FF" },
+    { label: "Experience Align", score: 0, note: "Level match", color: "#7B2FFF" },
+    { label: "Skills Coverage", score: 0, note: "Skills matched", color: "#FF8C42" },
+    { label: "Action Words", score: 0, note: "Verb strength", color: "#FF4D6D" },
+  ],
+})
 });
 
-/* ─────────────────────────────────────────────
-   Helpers
-───────────────────────────────────────────── */
+  //  Helpers
 async function createTempResume(
   userId: number,
   rawText: string
@@ -222,6 +211,5 @@ async function createTempResume(
       status: "OPTIMIZED",
     },
   });
-
   return resume.id;
 }
