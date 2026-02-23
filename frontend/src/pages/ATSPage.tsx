@@ -77,7 +77,7 @@ useEffect(() => {
 
 useEffect(() => {
   setCategoryWidths(ats.categories.map(() => 0))
-  const ivs: NodeJS.Timeout[] = []
+  const ivs: number[] = []
 
   ats.categories.forEach((cat, i) => {
     ivs[i] = setInterval(() => {

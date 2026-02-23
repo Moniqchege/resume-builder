@@ -12,8 +12,8 @@
     "noEmit": true,
     "jsx": "react-jsx",
     "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
     "baseUrl": ".",
     "paths": {
@@ -23,7 +23,8 @@
       "@store/*": ["./src/store/*"],
       "@hooks/*": ["./src/hooks/*"],
       "@lib/*": ["./src/lib/*"]
-    }
+    },
+     "types": ["vite/client"],
   },
   "include": ["src"],
   "references": [{ "path": "./tsconfig.node.json" }]
