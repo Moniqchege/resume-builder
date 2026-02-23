@@ -1,10 +1,10 @@
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { useAuthStore } from '@store/authStore'
 import { scorePillClass, scoreColor } from '@lib/utils'
 import ScoreRing from '@components/ats/ScoreRing'
 import api from '@lib/api'
-import { useUser } from '@/store/UserContext'
+import { useAuthStore } from '@/store/authStore'
+import toast from 'react-hot-toast'
 
 interface Resume {
   id:            string
@@ -14,6 +14,7 @@ interface Resume {
   delta:         number
   status:        string
   updatedAt:     string
+  analysisId?:    number | null
 }
 
 interface Stats {
@@ -24,8 +25,19 @@ interface Stats {
 }
 
 export default function DashboardPage() {
-  const { user } = useUser()
+ const user = useAuthStore(state => state.user)
+const isFirstLogin = useAuthStore(state => state.isFirstLogin)
   const navigate  = useNavigate()
+  const hour = new Date().getHours();
+
+let timeGreeting = "Welcome";
+
+if (!isFirstLogin) {
+  if (hour < 12) timeGreeting = "Good morning";
+  else if (hour < 17) timeGreeting = "Good afternoon";
+  else timeGreeting = "Good evening";
+}
+  const greeting = isFirstLogin ? "Welcome" : timeGreeting;
 
   const { data: stats } = useQuery<Stats>({
     queryKey: ['stats'],
@@ -51,7 +63,7 @@ export default function DashboardPage() {
     { label: 'Optimized Today',  value: stats?.optimizedToday ?? 0,  sub: 'Last: 12 min ago',  icon: '✦',  color: 'text-[#FF8C42]' },
   ]
 
-  const firstName = user?.displayName?.split(' ')[0] ?? 'there'
+  const firstName = user?.name?.split(' ')[0] ?? 'there'
 
   return (
     <div className="animate-fade-up space-y-8">
@@ -61,10 +73,12 @@ export default function DashboardPage() {
           <p className="text-[11px] text-cyan font-mono tracking-[2px] mb-1.5">
             {new Date().toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric',year:'numeric'}).toUpperCase()}
           </p>
-          <h1 className="text-[34px] font-bold text-ink-primary leading-tight tracking-[-1px]">
-            Good morning,{' '}
-            <span className="text-gradient-cyan">{firstName} 👋</span>
-          </h1>
+         <h1 className="text-[34px] font-bold text-ink-primary leading-tight tracking-[-1px]">
+  {greeting},{" "}
+  <span className="text-gradient-cyan">
+    {user?.name?.split(" ")[0]} 👋
+  </span>
+</h1>
         </div>
         <button onClick={() => navigate('/resume-builder')} className="btn-primary whitespace-nowrap">
           ✦ New Resume
@@ -115,7 +129,14 @@ export default function DashboardPage() {
           {resumes.map((r) => (
             <button
               key={r.id}
-              onClick={() => navigate(`/ats-analyzer/${r.id}`)}
+              onClick={() => {
+                if (r.analysisId) {
+                   navigate(`/ats-analyzer/${r.analysisId}`)
+                  } else {
+                    toast.error('No analysis yet — optimize this resume first.')
+                    navigate('/resume-builder') 
+                   }
+                  }}
               className="glass-card w-full p-5 flex items-center gap-5 text-left
                          hover:border-cyan/25 hover:bg-cyan/[0.03] transition-all duration-200
                          hover:-translate-y-0.5"

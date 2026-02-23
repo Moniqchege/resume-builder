@@ -14,8 +14,6 @@ router.post("/register", async (req: Request, res: Response) => {
     if (!username || !email || !password) {
       return res.status(400).json({ message: "All fields required" });
     }
-
-    // Check if user exists
     const existing = await db.user.findFirst({
       where: {
         OR: [{ username }, { email }]
@@ -26,11 +24,7 @@ router.post("/register", async (req: Request, res: Response) => {
     if (existing) {
       return res.status(409).json({ message: "User already exists" });
     }
-
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
-
-    // Create user
     const result = await db.user.create({
       data: {
         username,
@@ -40,15 +34,22 @@ router.post("/register", async (req: Request, res: Response) => {
       },
       select: { id: true, username: true, email: true }
     });
-
-    // Sign JWT
     const token = jwt.sign(
       { userId: result.id, username: result.username },
       process.env.JWT_SECRET!,
       { expiresIn: "7d" }
     );
 
-    res.status(201).json({ token });
+   res.status(201).json({
+  token,
+  user: {
+    id: result.id,
+    username: result.username,
+    email: result.email,
+    name: username
+  },
+  isFirstLogin: true
+});
 
   } catch (err) {
     console.error(err);
@@ -60,31 +61,36 @@ router.post("/register", async (req: Request, res: Response) => {
 router.post("/login", async (req: Request, res: Response) => {
   try {
     const { username, password } = req.body;
-
-    const user = await db.user.findUnique({ where: { username } });
+    const user = await db.user.findUnique({ where: { username }, include: { sessions: true },  });
     if (!user) return res.status(401).json({ message: "Invalid credentials" });
-
     const validPassword = await bcrypt.compare(password, user.password_hash);
     if (!validPassword) return res.status(401).json({ message: "Invalid credentials" });
-
-    // Sign JWT
+    const isFirstLogin = user.sessions.length === 0;
     const token = jwt.sign(
-      { sub: user.id.toString() }, // sub is your user ID, matches middleware
+      { sub: user.id.toString() }, 
       process.env.JWT_SECRET!,
       { expiresIn: "7d" }
     );
-
-    // Store session
     await db.sessions.create({
       data: {
         user_id: user.id,
         token,
-        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), 
       },
     });
 
-    res.json({ token });
-
+    res.json({ 
+      token,
+      user: {
+        id: user.id,
+        username: user.username,
+        name: user.name,
+        email: user.email,
+        image: user.image,
+        plan: user.plan,
+      }, 
+      isFirstLogin,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });

@@ -41,7 +41,7 @@ resumeRouter.get('/', async (req: AuthRequest, res: Response) => {
         atsAnalyses: {
           orderBy: { createdAt: 'desc' },
           take: 1,
-          select: { atsScore: true, companyName: true, createdAt: true },
+          select: { id: true, atsScore: true, companyName: true, createdAt: true, previousScore: true },
         },
       },
       orderBy: { updatedAt: 'desc' },
@@ -53,8 +53,11 @@ resumeRouter.get('/', async (req: AuthRequest, res: Response) => {
       company: r.atsAnalyses[0]?.companyName ?? null,
       status: r.status,
       overallScore: r.atsAnalyses[0]?.atsScore ?? 0,
-      delta: r.atsAnalyses[0] ? r.atsAnalyses[0].atsScore - (r.currentScore ?? 0) : 0,
+      delta: r.atsAnalyses[0] 
+    ? r.atsAnalyses[0].atsScore - (r.atsAnalyses[0].previousScore ?? 0)  // use previousScore from analysis, not resume
+    : 0,
       updatedAt: r.updatedAt,
+      analysisId: r.atsAnalyses[0]?.id ?? null,
     }));
 
     res.json({ resumes: mapped });

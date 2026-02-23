@@ -1,14 +1,17 @@
 import { createContext, useContext, useState, ReactNode } from "react";
 
 type User = {
-  id: string;
-  displayName: string;
-  email: string;
-  photo?: string;
+  id: number
+  username: string
+  name: string
+  email: string
+  image?: string | null
+  plan?: string
 };
 
 type UserContextType = {
   user: User | null;
+  isFirstLogin: boolean;
   setUser: (u: User) => void;
 };
 

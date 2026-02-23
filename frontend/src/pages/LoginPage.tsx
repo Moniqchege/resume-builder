@@ -2,6 +2,7 @@ import OrbBackground from "@/components/OrbBackground";
 import { useState, useEffect, useRef } from "react";
 import { FaUser, FaEye, FaEyeSlash } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
+import { useAuthStore } from '@/store/authStore'
 
 // ─── Landing / Auth View ──────────────────────────────────────────────────────
 export default function LandingView({
@@ -10,6 +11,7 @@ export default function LandingView({
   onLogin: (provider: string) => void;
 }) {
   const [hoveredProvider, setHoveredProvider] = useState<string | null>(null);
+  const { setToken } = useAuthStore()
 
   const providers = [
     { id: "google", label: "Google", icon: "G", color: "#EA4335" },
@@ -57,7 +59,7 @@ const handleLocalLogin = async () => {
       setLoading(false);
       return;
     }
-    localStorage.setItem("token", data.token);
+    setToken(data.token, data.user, data.isFirstLogin)
     console.log("Logged in successfully!", data);
     navigate("/dashboard");
     setLoading(false);
@@ -88,7 +90,7 @@ const handleRegister = async () => {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ username, password, email: username }), // replace email if you want separate field
+      body: JSON.stringify({ username, password, email: username }), 
     });
 
     const data = await res.json();
@@ -97,7 +99,7 @@ const handleRegister = async () => {
       setLoading(false);
       return;
     }
-    localStorage.setItem("token", data.token);
+    setToken(data.token, data.user, data.isFirstLogin)
     console.log("Registered successfully!", data);
     navigate("/dashboard");
     setLoading(false);

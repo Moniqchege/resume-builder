@@ -49,12 +49,18 @@ export default function ATSPage() {
   const [animScore, setAnimScore] = useState(initialState?.overallScore || 0)
   const [barsReady, setBarsReady] = useState(false)
 
-  const { data: ats = PLACEHOLDER, refetch, isFetching } = useQuery<ATSData>({
+ const { data: ats = PLACEHOLDER, refetch, isFetching } = useQuery<ATSData>({
   queryKey: ['ats', analysisId],
   queryFn: () => api.get(`/api/ats/analyses/${analysisId}`).then(r => r.data),
   enabled: !!analysisId,
   placeholderData: PLACEHOLDER,
 });
+
+useEffect(() => {
+  setAnimScore(0);
+  setBarsReady(false);
+  setCategoryWidths(ats.categories.map(() => 0));
+}, [analysisId]);
 
   console.log("ATS DATA:", ats)
 
@@ -247,33 +253,9 @@ useEffect(() => {
         </div>
       </div>
 
-      {/* ── AI Suggestions ── */}
-      <div className="glass-card p-6 border-violet/20">
-        <h3 className="text-[14px] font-bold text-ink-primary mb-5 flex items-center gap-2">
-          <span className="w-6 h-6 rounded-lg bg-grad-cyan flex items-center justify-center text-[11px] text-space-bg">✦</span>
-          AI Optimization Suggestions
-        </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {ats.suggestions.map((s, i) => (
-            <div key={i} className="p-5 rounded-2xl"
-                 style={{ background: `${s.color}09`, border: `1px solid ${s.color}22` }}>
-              <div className="text-2xl mb-2.5">{s.icon}</div>
-              <p className="text-[13px] font-bold mb-2" style={{ color: s.color }}>{s.title}</p>
-              <p className="text-[12px] text-ink-muted leading-[1.6]">{s.body}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
       {/* ── Action Row ── */}
       <div className="flex flex-col sm:flex-row gap-3">
-        <button className="btn-primary flex-1 text-center">✦ Apply AI Suggestions</button>
         <button className="btn-lime flex-1 text-center" onClick={handleDownloadPDF}>↓ Export Optimized PDF</button>
-        <button className="flex-1 text-center py-3 rounded-xl font-bold text-[14px]
-                           bg-grad-violet text-white shadow-violet
-                           hover:-translate-y-0.5 transition-all duration-200">
-          + Save to Library
-        </button>
       </div>
     </div>
   )
