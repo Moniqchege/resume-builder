@@ -48,7 +48,7 @@ resumeRouter.get('/', async (req: AuthRequest, res: Response) => {
       orderBy: { updatedAt: 'desc' },
     });
 
-    const mapped = resumes.map(r => ({
+    const mapped = resumes.map((r: typeof resumes[number]) => ({
       id: r.id,
       title: r.originalFilename,
       company: r.atsAnalyses[0]?.companyName ?? null,
@@ -87,7 +87,7 @@ resumeRouter.get('/stats', async (req: AuthRequest, res: Response) => {
     ]);
 
     const avgScore = analyses.length
-      ? Math.round(analyses.reduce((acc, a) => acc + a.atsScore, 0) / analyses.length)
+      ? Math.round(analyses.reduce((acc: number, a: typeof analyses[number]) => acc + a.atsScore, 0) / analyses.length)
       : 0;
 
     res.json({
