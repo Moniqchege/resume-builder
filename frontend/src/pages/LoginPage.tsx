@@ -1,3 +1,4 @@
+// @ts-ignore
 import OrbBackground from "@/components/OrbBackground";
 import { useState, useEffect } from "react";
 import { FaUser, FaEye, FaEyeSlash } from "react-icons/fa";

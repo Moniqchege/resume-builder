@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { scorePillClass, scoreColor } from '@lib/utils'
+import { scorePillClass } from '@lib/utils'
 import ScoreRing from '@components/ats/ScoreRing'
 import api from '@lib/api'
 import { useAuthStore } from '@/store/authStore'
@@ -62,8 +62,6 @@ if (!isFirstLogin) {
     // { label: 'Jobs Applied',     value: stats?.jobsApplied ?? 0,     sub: '2 interviews!',     icon: '🎯', color: 'text-violet' },
     { label: 'Optimized Today',  value: stats?.optimizedToday ?? 0,  sub: 'Last: 12 min ago',  icon: '✦',  color: 'text-[#FF8C42]' },
   ]
-
-  const firstName = user?.name?.split(' ')[0] ?? 'there'
 
   return (
     <div className="animate-fade-up space-y-8">
