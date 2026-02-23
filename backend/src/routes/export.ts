@@ -1,42 +1,67 @@
 import { Router, Response } from 'express'
-import { requireAuth, AuthRequest } from '../middleware/auth.js'
+import { requireAuth } from '../middleware/auth.js'
 import { db } from '../db/prisma.js'
+import { AuthRequest } from '../middleware/auth-types.js'
 
 export const exportRouter = Router()
-exportRouter.use(requireAuth)
+exportRouter.use(requireAuth as any)
 
 // ── POST /api/export/:resumeId/pdf ────────────────────────
-exportRouter.post('/:resumeId/pdf', async (req: AuthRequest, res: Response) => {
+exportRouter.post('/:resumeId/pdf', async (req, res) => {
+  const authReq = req as AuthRequest;
+
+  const resumeId = Number(req.params.resumeId);
+  const userId = Number(authReq.userId);
+
+  if (isNaN(resumeId) || isNaN(userId)) {
+    return res.status(400).json({ error: 'Invalid ID' });
+  }
+
   const resume = await db.resume.findFirst({
-    where: { id: req.params.resumeId, userId: req.userId! },
-  })
-  if (!resume) return res.status(404).json({ error: 'Resume not found' })
+    where: { id: resumeId, userId },
+  });
 
-  // TODO: Integrate pdf-lib or puppeteer to generate styled PDF
-  // For MVP: return a plain text version
-  const content = resume.optimizedText || resume.rawText
+  if (!resume) {
+    return res.status(404).json({ error: 'Resume not found' });
+  }
 
-  res.setHeader('Content-Type', 'application/pdf')
-  res.setHeader('Content-Disposition', `attachment; filename="${resume.title.replace(/\s+/g, '_')}.pdf"`)
+  const content = resume.optimizedText || resume.originalText;
 
-  // Placeholder — in production generate a real PDF here
-  res.send(Buffer.from(`%PDF-1.4 — ${resume.title}\n\n${content}`))
-})
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader(
+    'Content-Disposition',
+    `attachment; filename="${resume.originalFilename.replace(/\s+/g, '_')}.pdf"`
+  );
+
+  res.send(Buffer.from(`%PDF-1.4 — ${resume.originalFilename}\n\n${content}`));
+});
 
 // ── POST /api/export/:resumeId/txt ────────────────────────
-exportRouter.post('/:resumeId/txt', async (req: AuthRequest, res: Response) => {
+exportRouter.post('/:resumeId/txt', async (req, res) => {
+  const authReq = req as AuthRequest;
+
+  const resumeId = Number(req.params.resumeId);
+  const userId = Number(authReq.userId);
+
+  if (isNaN(resumeId) || isNaN(userId)) {
+    return res.status(400).json({ error: 'Invalid ID' });
+  }
+
   const resume = await db.resume.findFirst({
-    where: { id: req.params.resumeId, userId: req.userId! },
-  })
-  if (!resume) return res.status(404).json({ error: 'Resume not found' })
+    where: { id: resumeId, userId },
+  });
 
-  const content = resume.optimizedText || resume.rawText
-  res.setHeader('Content-Type', 'text/plain')
-  res.setHeader('Content-Disposition', `attachment; filename="${resume.title.replace(/\s+/g, '_')}.txt"`)
-  res.send(content)
+  if (!resume) {
+    return res.status(404).json({ error: 'Resume not found' });
+  }
 
-  // Log export in DB
-  await db.export.create({
-    data: { resumeId: resume.id, format: 'TXT' },
-  }).catch(() => {})
-})
+  const content = resume.optimizedText || resume.originalText;
+
+  res.setHeader('Content-Type', 'text/plain');
+  res.setHeader(
+    'Content-Disposition',
+    `attachment; filename="${resume.originalFilename.replace(/\s+/g, '_')}.txt"`
+  );
+
+  res.send(content);
+});

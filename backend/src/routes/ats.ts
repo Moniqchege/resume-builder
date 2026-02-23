@@ -8,7 +8,6 @@ import {
   generateSuggestions,
 } from "../services/atsService.js";
 import type { AuthRequest } from "../middleware/auth-types.js";
-import { Resume } from "@prisma/client";
 
 export const atsRouter = Router();
 
@@ -50,7 +49,7 @@ atsRouter.post("/analyze", async (req, res): Promise<void> => {
   }
 
   let text = resumeText;
-  let resume: Resume | null = null;
+  let resume: Awaited<ReturnType<typeof db.resume.findFirst>> = null;
 
   const userId = Number(authReq.userId);
   if (isNaN(userId)) {
