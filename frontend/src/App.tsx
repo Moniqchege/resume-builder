@@ -1,6 +1,5 @@
 // App.tsx
-import { Routes, Route, useLocation } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { Routes, Route } from "react-router-dom";
 import LandingView from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
 import AppLayout from "./components/layout/AppLayout";

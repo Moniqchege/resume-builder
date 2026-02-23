@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import ScoreRing from '@components/ats/ScoreRing'
-import { scoreColor } from '@lib/utils'
 import api from '@lib/api'
 
 interface ATSData {
@@ -49,7 +47,7 @@ export default function ATSPage() {
   const [animScore, setAnimScore] = useState(initialState?.overallScore || 0)
   const [barsReady, setBarsReady] = useState(false)
 
- const { data: ats = PLACEHOLDER, refetch, isFetching } = useQuery<ATSData>({
+ const { data: ats = PLACEHOLDER } = useQuery<ATSData>({
   queryKey: ['ats', analysisId],
   queryFn: () => api.get(`/api/ats/analyses/${analysisId}`).then(r => r.data),
   enabled: !!analysisId,

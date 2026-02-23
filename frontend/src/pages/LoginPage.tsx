@@ -1,5 +1,5 @@
 import OrbBackground from "@/components/OrbBackground";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { FaUser, FaEye, FaEyeSlash } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from '@/store/authStore'

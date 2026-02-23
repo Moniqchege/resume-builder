@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { NavLink, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@store/authStore'
 import { cn } from '@lib/utils'
-import { LayoutDashboard, Sparkles, Target, LogOut, Menu } from 'lucide-react'
+import { LayoutDashboard, Sparkles, LogOut, Menu } from 'lucide-react'
 
 const NAV = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
