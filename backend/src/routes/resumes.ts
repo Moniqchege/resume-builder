@@ -7,6 +7,7 @@ import pdfParse from 'pdf-parse';
 import mammoth from 'mammoth';
 import { analyzeWithAI, generatePDF, optimizeWithConfirmedSkills } from '../services/aiService.js';
 import path from 'path';
+import { scoreATS } from '../services/atsService.js';
 
 export interface AuthRequest extends Request {
   userId?: string;
@@ -183,6 +184,7 @@ resumeRouter.post('/:id/optimize', async (req: AuthRequest, res: Response) => {
 
 /* ── POST /api/resumes/:id/optimize-confirmed ── */
 resumeRouter.post('/:id/optimize-confirmed', async (req: AuthRequest, res: Response) => {
+  console.log('optimize-confirmed called'); 
   try {
     const resumeId = Number(req.params.id);
     const userId = Number(req.userId);
@@ -191,23 +193,41 @@ resumeRouter.post('/:id/optimize-confirmed', async (req: AuthRequest, res: Respo
     const existingResume = await db.resume.findFirst({ where: { id: resumeId, userId } });
     if (!existingResume) return res.status(404).json({ error: 'Resume not found' });
 
-    const { jobDescription, confirmedSkills, overallScore, keywordMatches, missingKeywords } = req.body;
+    const { jobDescription, confirmedSkills, keywordMatches, missingKeywords } = req.body;
     if (!jobDescription) return res.status(400).json({ error: 'Job description is required' });
 
-    const optimizedText = await optimizeWithConfirmedSkills(
-      existingResume.originalText,
-      jobDescription,
-      confirmedSkills ?? []
-    );
+    // Run both in parallel — rewrite + score
+    console.log('calling scoreATS...');
+    const [optimizedText, breakdown] = await Promise.all([
+      optimizeWithConfirmedSkills(existingResume.originalText, jobDescription, confirmedSkills ?? []),
+      scoreATS(existingResume.originalText, jobDescription),  // score ORIGINAL resume against JD
+    ]);
+    console.log('breakdown:', breakdown);
+
+    // Extract job title and company from JD first line if present
+    const firstLine = jobDescription.split('\n')[0];
+    const jobMatch = firstLine.match(/(.+) at (.+)/i);
+    const jobTitle = jobMatch?.[1]?.trim() ?? 'Unknown Role';
+    const companyName = jobMatch?.[2]?.trim() ?? 'Unknown Company';
 
     const analysis = await db.atsAnalysis.create({
       data: {
         resumeId: existingResume.id,
-        atsScore: overallScore ?? 70,
+        atsScore: breakdown.overallScore,
         previousScore: existingResume.currentScore ?? 0,
-        matchedKeywords: [...(keywordMatches ?? []), ...(confirmedSkills ?? [])],
-        missingKeywords: (missingKeywords ?? []).filter((k: string) => !confirmedSkills?.includes(k)),
+        matchedKeywords: breakdown.keywordsFound,
+        missingKeywords: breakdown.keywordsMissing,
         jobDescription,
+        jobTitle,
+        companyName,
+        keywordMatchPercentage: breakdown.keywordScore,
+        formatScore: breakdown.formatScore,
+        experienceScore: breakdown.experienceScore,
+        skillsScore: breakdown.skillsScore,
+        actionWordsScore: breakdown.actionWordsScore,
+        improvementSuggestions: JSON.stringify({
+          suggestions: missingKeywords ?? [],
+        }),
       },
     });
 
@@ -217,7 +237,7 @@ resumeRouter.post('/:id/optimize-confirmed', async (req: AuthRequest, res: Respo
       data: {
         optimizedText,
         optimizedFileUrl: fileUrlForDB,
-        currentScore: overallScore ?? 70,
+        currentScore: breakdown.overallScore,
         status: 'OPTIMIZED',
       },
     });
@@ -225,7 +245,7 @@ resumeRouter.post('/:id/optimize-confirmed', async (req: AuthRequest, res: Respo
     res.json({
       resumeId: updatedResume.id,
       analysisId: analysis.id,
-      overallScore: overallScore ?? 70,
+      overallScore: breakdown.overallScore,
       optimizedText,
       optimizedFileUrl: `http://localhost:4000/uploads/optimized_${resumeId}.pdf`,
     });

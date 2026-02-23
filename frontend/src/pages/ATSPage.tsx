@@ -61,9 +61,6 @@ useEffect(() => {
   setBarsReady(false);
   setCategoryWidths(ats.categories.map(() => 0));
 }, [analysisId]);
-
-  console.log("ATS DATA:", ats)
-
   useEffect(() => {
     let cur = 0
     const target = ats.overallScore
@@ -128,8 +125,8 @@ useEffect(() => {
           <p className="text-ink-muted text-sm">{ats.jobTitle} · {ats.company} · Analyzed just now</p>
         </div>
         <div className="flex gap-2.5">
-          <button className="btn-ghost text-sm px-4 py-2.5" onClick={() => refetch()} disabled={isFetching}>{isFetching ? "Re-analyzing..." : "↻ Re-analyze"}</button>
-          <button className="btn-lime text-sm">↓ Export PDF</button>
+          {/* <button className="btn-ghost text-sm px-4 py-2.5" onClick={() => refetch()} disabled={isFetching}>{isFetching ? "Re-analyzing..." : "↻ Re-analyze"}</button> */}
+          {/* <button className="btn-lime text-sm" onClick={handleDownloadPDF}>↓ Export PDF</button> */}
         </div>
       </div>
 
@@ -222,7 +219,7 @@ useEffect(() => {
   </div>
 ))}
  </div>
-          </div>
+ </div>
 
           {/* Keywords — Found & Missing */}
           <div className="grid grid-cols-2 gap-4">

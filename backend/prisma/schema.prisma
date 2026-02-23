@@ -73,6 +73,10 @@ model AtsAnalysis {
   optimizedResumeText    String?   @map("optimized_resume_text") @db.LongText
   createdAt              DateTime? @default(now()) @map("created_at") @db.Timestamp(0)
   previousScore Int? @map("previous_score")
+  formatScore      Int?
+  experienceScore  Int?
+  skillsScore      Int?
+  actionWordsScore Int?
   resume                 Resume    @relation("ResumeToATS", fields: [resumeId], references: [id], onDelete: Cascade, map: "fk_ats_resume")
 
   @@index([resumeId], map: "idx_ats_resume")

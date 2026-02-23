@@ -88,9 +88,8 @@ atsRouter.post("/analyze", async (req, res): Promise<void> => {
   }
 
  try {
-  const keywords = await extractKeywords(jobDescription);
-  const breakdown = await scoreATS(text, jobDescription, keywords);
-  const suggestions = await generateSuggestions(breakdown, jobTitle, company);
+const keywords = await extractKeywords(jobDescription);
+const breakdown = await scoreATS(text, jobDescription);
 
   let previousScore = 0;
 
@@ -104,36 +103,49 @@ atsRouter.post("/analyze", async (req, res): Promise<void> => {
     previousScore = lastAnalysis?.previousScore ?? 0;
   }
 
-  const analysis = await db.atsAnalysis.create({
-    data: {
-      resumeId: resume?.id ?? await createTempResume(userId, text),
-      jobDescription,
-      jobTitle: jobTitle ?? "Unknown Role",
-      companyName: company ?? "Unknown Company",
-      atsScore: breakdown.overallScore,
-      keywordMatchPercentage: breakdown.keywordScore,
-      previousScore,
-      matchedKeywords: breakdown.keywordsFound,
-      missingKeywords: breakdown.keywordsMissing,
-      improvementSuggestions: suggestions.map(s => s.title).join("\n"),
-    },
-  });
+const analysis = await db.atsAnalysis.create({
+  data: {
+    resumeId: resume?.id ?? await createTempResume(userId, text),
+    jobDescription,
+    jobTitle: jobTitle ?? 'Unknown Role',
+    companyName: company ?? 'Unknown Company',
+    atsScore: breakdown.overallScore,
+    keywordMatchPercentage: breakdown.keywordScore,
+    previousScore,
+    matchedKeywords: breakdown.keywordsFound,
+    missingKeywords: breakdown.keywordsMissing,
+    // improvementSuggestions: suggestions.map((s: any) => s.title).join('\n'),
+    formatScore: breakdown.formatScore,
+    experienceScore: breakdown.experienceScore,
+    skillsScore: breakdown.skillsScore,
+    actionWordsScore: breakdown.actionWordsScore,  // matches schema
+  },
+});
 
-  if (resume) {
-    await db.resume.update({
-      where: { id: resume.id },
-      data: { status: "OPTIMIZED" },
-    });
-  }
+if (resume) {
+  await db.resume.update({
+    where: { id: resume.id },
+    data: { status: 'OPTIMIZED' },
+  });
+}
 
   res.json({
-    analysisId: analysis.id,
-    atsScore: analysis.atsScore,
-    previousScore: analysis.previousScore,
-    keywordsFound: analysis.matchedKeywords ?? [],
-    keywordsMissing: analysis.missingKeywords ?? [],
-    suggestions,
-  });
+  analysisId: analysis.id,
+  resumeId: analysis.resumeId,
+  overallScore: analysis.atsScore ?? 0,
+  previousScore: analysis.previousScore ?? 0,
+  jobTitle: analysis.jobTitle ?? 'Unknown Role',
+  company: analysis.companyName ?? 'Unknown Company',
+  keywordsFound: breakdown.keywordsFound,
+  keywordsMissing: breakdown.keywordsMissing,
+  categories: [
+    { label: 'Keyword Match',     score: breakdown.keywordScore,     note: `${breakdown.keywordsFound.length} matched`,  color: '#B8FF00' },
+    { label: 'Format & Structure', score: breakdown.formatScore,      note: 'ATS-friendliness',                           color: '#00D4FF' },
+    { label: 'Experience Align',  score: breakdown.experienceScore,   note: 'Level & role match',                         color: '#7B2FFF' },
+    { label: 'Skills Coverage',   score: breakdown.skillsScore,       note: 'Technical skills',                           color: '#FF8C42' },
+    { label: 'Action Words',      score: breakdown.actionWordsScore,  note: 'Verb strength',                              color: '#FF4D6D' },
+  ],
+});
 
 } catch (err) {
   if (resumeId) {
@@ -181,18 +193,14 @@ res.json({
   jobTitle: analysis.jobTitle ?? "Unknown Role",
   company: analysis.companyName ?? "Unknown Company",
   keywordMatchPercentage: analysis.keywordMatchPercentage ?? 0,
-  keywordsFound: matchedKeywords,
+  keywordsFound:   matchedKeywords,
   keywordsMissing: missingKeywords,
-  suggestions: (analysis.improvementSuggestions ?? "")
-    .split("\n")
-    .filter(Boolean)
-    .map((s) => ({ icon: "📌", color: "#7B2FFF", title: s, body: s })),
   categories: [
-    { label: "Keyword Match", score: analysis.keywordMatchPercentage ?? 0, note: `${matchedKeywords.length} keywords`, color: "#B8FF00" },
-    { label: "Format & Structure", score: 0, note: "ATS-friendliness", color: "#00D4FF" },
-    { label: "Experience Align", score: 0, note: "Level match", color: "#7B2FFF" },
-    { label: "Skills Coverage", score: 0, note: "Skills matched", color: "#FF8C42" },
-    { label: "Action Words", score: 0, note: "Verb strength", color: "#FF4D6D" },
+    { label: 'Keyword Match',      score: Number(analysis.keywordMatchPercentage ?? 0), note: `${matchedKeywords.length} matched`, color: '#B8FF00' },
+    { label: 'Format & Structure', score: analysis.formatScore ?? 0,                    note: 'ATS-friendliness',                  color: '#00D4FF' },
+    { label: 'Experience Align',   score: analysis.experienceScore ?? 0,                note: 'Level & role match',                color: '#7B2FFF' },
+    { label: 'Skills Coverage',    score: analysis.skillsScore ?? 0,                    note: 'Technical skills',                  color: '#FF8C42' },
+    { label: 'Action Words',       score: analysis.actionWordsScore ?? 0,               note: 'Verb strength',                     color: '#FF4D6D' },
   ],
 })
 });
