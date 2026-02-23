@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import passport from "passport";
 import bcrypt from "bcrypt";
-import { db } from "../db/prisma";
+import { db } from "../db/prisma.js";
 import jwt from "jsonwebtoken";
 
 const router = Router();

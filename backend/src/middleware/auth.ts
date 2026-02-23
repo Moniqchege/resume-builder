@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction, RequestHandler } from "express";
 import jwt, { JwtPayload } from "jsonwebtoken";
-import { db } from "../db/prisma";
+import { db } from "../db/prisma.js";
 import { AuthRequest } from "./auth-types";
 
 /* ─────────────────────────────────────────────

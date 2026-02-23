@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { requireAuth } from '../middleware/auth.js';
-import { db } from "../db/prisma";
+import { db } from "../db/prisma.js";
 import { z } from 'zod';
 import multer from 'multer';
 import pdfParse from 'pdf-parse';
